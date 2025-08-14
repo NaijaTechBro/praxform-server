@@ -21,11 +21,11 @@ const sendEmail = async (options) => {
     }
 
     const transporter = nodemailer.createTransport({
-        host: process.env.GETLISTED_EMAIL_HOST,
-        port: process.env.GETLISTED_EMAIL_PORT,
+        host: process.env.PRAXFORM_EMAIL_HOST,
+        port: process.env.PRAXFORM_EMAIL_PORT,
         auth: {
-            user: process.env.GETLISTED_EMAIL_USER,
-            pass: process.env.GETLISTED_EMAIL_PASS,
+            user: process.env.PRAXFORM_EMAIL_USER,
+            pass: process.env.PRAXFORM_EMAIL_PASS,
         },
         tls: {
             rejectUnauthorized: false,
