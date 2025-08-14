@@ -24,20 +24,27 @@ const UserSchema = new mongoose.Schema({
             push: { type: Boolean, default: true }
         }
     },
+    emailVerificationToken: String,
+    emailVerificationTokenExpires: Date,
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
     metadata: { type: Map, of: String }
 }, { timestamps: true });
 
 UserSchema.pre('save', async function(next) {
-    if (!this.isModified('passwordHash') || this.authMethod !== 'local') {
-        return next();
+    if (this.isModified('passwordHash') && this.authMethod === 'local') {
+        const salt = await bcrypt.genSalt(10);
+        this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
     }
-    const salt = await bcrypt.genSalt(10);
-    this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
     next();
 });
 
 UserSchema.methods.matchPassword = async function(enteredPassword) {
-    return await bcrypt.compare(enteredPassword, this.passwordHash);
+    // Only compare if passwordHash exists (for local auth)
+    if (this.passwordHash) {
+        return await bcrypt.compare(enteredPassword, this.passwordHash);
+    }
+    return false; // If no passwordHash, cannot match
 };
 
 const User = mongoose.model('User', UserSchema);
