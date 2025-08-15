@@ -272,8 +272,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
             link: welcomeLink // Pass the link for the 'Get Started' button
         });
         console.log('Welcome email sent successfully.');
-    }
-    catch (welcomeEmailError) {
+    } catch (welcomeEmailError) {
         console.error('Error sending welcome email:', welcomeEmailError);
         // Log the error but don't prevent the verification success response
     }
@@ -307,7 +306,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
     const sendToEmail = user.email;
     const sentFromEmail = `${process.env.PRAXFORM_FROM_NAME || 'PraxForm Team'} <${process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com'}>`;
     const replyToEmail = process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com';
-    const emailTemplateName = "passwordReset"; // Use the passwordReset template
+    const emailTemplateName = "reset-password";
     const recipientName = user.firstName;
 
     try {
@@ -337,8 +336,8 @@ const forgotPassword = asyncHandler(async (req, res) => {
 // @access  Public
 const resetPassword = asyncHandler(async (req, res) => {
     // Expecting a hex token from the URL parameter
-    const rawToken = req.params.resetToken;
-    const { password } = req.body;
+    const rawToken = req.params.resetToken; 
+    const { password } = req.body; 
 
     if (!rawToken) {
         res.status(400);
