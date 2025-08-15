@@ -301,7 +301,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
     await user.save();
 
     // Send reset email with a link
-    const resetUrl = `${req.protocol}://${process.env.PRAXFORM_HOST}/api/v1/auth/resetpassword/${resetToken}`; // Construct the link
+    const resetUrl = `${req.protocol}://${process.env.PRAXFORM_HOST}/resetpassword/${resetToken}`; // Construct the link
     const emailSubject = "Password Reset Request for PraxForm";
     const sendToEmail = user.email;
     const sentFromEmail = `${process.env.PRAXFORM_FROM_NAME || 'PraxForm Team'} <${process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com'}>`;
