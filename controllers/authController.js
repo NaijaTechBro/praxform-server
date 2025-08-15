@@ -417,7 +417,7 @@ const registerUser = asyncHandler(async (req, res) => {
         const reply_to = process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com';
         const template = "verification"; 
         const name = user.firstName;
-        const code = verificationCode; // Pass the actual 6-digit code
+        const code = verificationCode; 
 
         try {
             await sendEmail({
@@ -427,7 +427,7 @@ const registerUser = asyncHandler(async (req, res) => {
                 reply_to,
                 template,
                 name,
-                code // Pass the 6-digit code
+                code 
             });
 
             // If everything is successful, send a success response
