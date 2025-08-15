@@ -225,7 +225,13 @@ const resendVerification = asyncHandler(async (req, res) => {
 // @route   GET /api/v1/auth/verifyemail/:code
 // @access  Public
 const verifyEmail = asyncHandler(async (req, res) => {
-    const rawCode = req.params.token; 
+    // Correctly get the code from req.params.code as defined in your route
+    const rawCode = req.params.code; 
+
+    if (!rawCode) {
+        res.status(400);
+        throw new Error('Verification code not provided in the URL.');
+    }
 
     // Hash the received code to compare with the stored hashed code
     const verificationCodeHashed = crypto.createHash('sha256').update(rawCode).digest('hex');
@@ -262,21 +268,21 @@ const forgotPassword = asyncHandler(async (req, res) => {
         throw new Error('User with that email not found');
     }
 
-    // Generate 6-digit reset code
-    const resetCode = generateSixDigitCode();
-    user.resetPasswordToken = crypto.createHash('sha256').update(resetCode).digest('hex');
+    // Generate reset token (hex string for a link)
+    const resetToken = crypto.randomBytes(20).toString('hex');
+    user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
     user.resetPasswordExpires = Date.now() + 3600000; // 1 hour expiry
 
     await user.save();
 
-    // Send reset email with code
+    // Send reset email with a link
+    const resetUrl = `${req.protocol}://${process.env.PRAXFORM_HOST}/api/v1/auth/resetpassword/${resetToken}`; // Construct the link
     const emailSubject = "Password Reset Request for PraxForm";
     const sendToEmail = user.email;
     const sentFromEmail = `${process.env.PRAXFORM_FROM_NAME || 'PraxForm Team'} <${process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com'}>`;
     const replyToEmail = process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com';
-    const emailTemplateName = "passwordReset";
+    const emailTemplateName = "passwordReset"; // Use the passwordReset template
     const recipientName = user.firstName;
-    const code = resetCode; // Pass the 6-digit code
 
     try {
         await sendEmail({
@@ -286,10 +292,10 @@ const forgotPassword = asyncHandler(async (req, res) => {
             reply_to: replyToEmail,
             template: emailTemplateName,
             name: recipientName,
-            code: code // Pass the 6-digit code
+            link: resetUrl // Pass the link instead of the code
         });
 
-        res.json({ success: true, message: 'Password reset code sent to your email. Please check your inbox.' });
+        res.json({ success: true, message: 'Password reset link sent to your email. Please check your inbox.' });
     } catch (err) {
         console.error(err);
         user.resetPasswordToken = undefined;
@@ -301,24 +307,29 @@ const forgotPassword = asyncHandler(async (req, res) => {
 });
 
 // @desc    Reset password
-// @route   PUT /api/v1/auth/resetpassword/:code (Frontend expects this format)
+// @route   PUT /api/v1/auth/resetpassword/:token
 // @access  Public
 const resetPassword = asyncHandler(async (req, res) => {
-    // Frontend is sending the 6-digit code as a URL parameter (req.params.token)
-    const rawCode = req.params.token;
+    // Expecting a hex token from the URL parameter
+    const rawToken = req.params.token; 
     const { password } = req.body; // New password from the request body
 
-    // Hash the received code to compare with the stored hashed code
-    const resetPasswordCodeHashed = crypto.createHash('sha256').update(rawCode).digest('hex');
+    if (!rawToken) {
+        res.status(400);
+        throw new Error('Reset token not provided in the URL.');
+    }
+
+    // Hash the received token to compare with the stored hashed token
+    const resetPasswordTokenHashed = crypto.createHash('sha256').update(rawToken).digest('hex');
 
     const user = await User.findOne({
-        resetPasswordToken: resetPasswordCodeHashed,
+        resetPasswordToken: resetPasswordTokenHashed,
         resetPasswordExpires: { $gt: Date.now() }
     });
 
     if (!user) {
         res.status(400);
-        throw new Error('Invalid or expired reset code');
+        throw new Error('Invalid or expired reset token');
     }
 
     // Ensure a new password is provided in the request body
