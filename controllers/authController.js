@@ -306,7 +306,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
     const sendToEmail = user.email;
     const sentFromEmail = `${process.env.PRAXFORM_FROM_NAME || 'PraxForm Team'} <${process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com'}>`;
     const replyToEmail = process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com';
-    const emailTemplateName = "passwordReset"; // Use the passwordReset template
+    const emailTemplateName = "reset-password";
     const recipientName = user.firstName;
 
     try {
