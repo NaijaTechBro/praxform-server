@@ -16,7 +16,7 @@ const audit = require('../middleware/auditMiddleware');
 router.post('/register', audit('user.created', 'user'), registerUser);
 router.post('/login', audit('user.login', 'user'), loginUser); // Logs login attempts
 router.post('/resendverification', resendVerification);
-router.get('/verifyemail/:token', verifyEmail);
+router.get('/verifyemail/:code', verifyEmail);
 router.post('/forgotpassword', forgotPassword);
 router.put('/resetpassword/:token', resetPassword);
 
