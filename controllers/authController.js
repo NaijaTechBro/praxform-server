@@ -7,7 +7,6 @@ const sendEmail = require('../utils/email/sendEmail');
 
 // Helper function to generate a 6-digit numeric code
 const generateSixDigitCode = () => {
-    // Generate a random number between 100000 (inclusive) and 999999 (inclusive)
     return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
@@ -197,7 +196,7 @@ const resendVerification = asyncHandler(async (req, res) => {
     const replyToEmail = process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com';
     const emailTemplateName = "verification";
     const recipientName = user.firstName;
-    const code = verificationCode; // Pass the 6-digit code
+    const code = verificationCode;
 
     try {
         await sendEmail({
@@ -207,7 +206,7 @@ const resendVerification = asyncHandler(async (req, res) => {
             reply_to: replyToEmail,
             template: emailTemplateName,
             name: recipientName,
-            code: code // Pass the 6-digit code
+            code: code 
         });
 
         res.json({ success: true, message: 'Verification email with new code sent' });
@@ -252,7 +251,33 @@ const verifyEmail = asyncHandler(async (req, res) => {
 
     await user.save();
 
-    res.status(200).json({ success: true, message: 'Email verified successfully' });
+    // --- Send Welcome Email after successful verification ---
+    const welcomeSubject = "Welcome to PraxForm!";
+    const welcomeSendTo = user.email;
+    const welcomeSentFrom = `${process.env.PRAXFORM_FROM_NAME || 'PraxForm Team'} <${process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com'}>`;
+    const welcomeReplyTo = process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com';
+    const welcomeTemplate = "welcome"; // Assuming you have a 'welcome' email template
+    const welcomeName = user.firstName;
+    // You might want to link to the user's dashboard or a setup page
+    const welcomeLink = `${req.protocol}://${process.env.PRAXFORM_HOST}/dashboard`; 
+
+    try {
+        await sendEmail({
+            subject: welcomeSubject,
+            send_to: welcomeSendTo,
+            sent_from: welcomeSentFrom,
+            reply_to: welcomeReplyTo,
+            template: welcomeTemplate,
+            name: welcomeName,
+            link: welcomeLink // Pass the link for the 'Get Started' button
+        });
+        console.log('Welcome email sent successfully.');
+    } catch (welcomeEmailError) {
+        console.error('Error sending welcome email:', welcomeEmailError);
+        // Log the error but don't prevent the verification success response
+    }
+
+    res.status(200).json({ success: true, message: 'Email verified successfully. Welcome to PraxForm!' });
 });
 
 // @desc    Forgot password
