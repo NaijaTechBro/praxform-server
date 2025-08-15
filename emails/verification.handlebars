@@ -29,7 +29,7 @@
       justify-content: center;
     }
     .logo-image {
-      height: 30px;
+      height: 30px; /* Adjust height as needed */
       margin-right: 8px;
     }
     .logo-text {
@@ -53,25 +53,19 @@
       margin-bottom: 16px;
       color: #37352f;
     }
-    .btn-container {
+    .verification-code {
+      font-size: 28px; /* Larger font size for the code */
+      font-weight: 700;
+      color: #1475F4; /* Highlight color */
       text-align: center;
-      margin: 32px 0;
-    }
-    .btn {
-      display: inline-block;
-      font-size: 14px;
-      font-weight: 500;
-      padding: 8px 16px;
-      background-color: #000000;
-      color: #ffffff !important;
-      text-decoration: none;
-      border-radius: 3px;
-      border: none;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-    }
-    .btn:hover {
-      background-color: #333333;
+      padding: 15px 20px;
+      background-color: #f0f8ff; /* Light blue background */
+      border: 1px dashed #a0d1ff; /* Dashed border */
+      border-radius: 8px;
+      margin: 30px auto;
+      display: block; /* Make it a block element to center and apply padding/margin */
+      max-width: fit-content; /* Adjust width to content */
+      letter-spacing: 2px; /* Add some letter spacing for readability */
     }
     .footer {
       margin-top: 40px;
@@ -87,46 +81,32 @@
       border-top: 1px solid #eaeaea;
       margin: 24px 0;
     }
-    .link-text {
-      font-size: 12px;
-      word-break: break-all;
-      color: #6b6b6b;
-      padding: 8px;
-      background-color: #f7f7f7;
-      border-radius: 3px;
-    }
+    /* Removed .btn and .btn-container as they are no longer needed */
   </style>
 </head>
 <body>
   <div class="container">
     <div class="logo">
-      <svg class="logo-image" viewBox="0 0 24 24" fill="currentColor">
-        <circle cx="12" cy="12" r="11" fill="black" />
-        <circle cx="12" cy="12" r="8" fill="white" />
-        <circle cx="12" cy="12" r="4" fill="black" />
-      </svg>
-      <span class="logo-text">GetListed Africa</span>
+      <!-- Replaced SVG with an image tag for the logo -->
+      <img src="https://praxform.com/assets/logo-B-nqIDlQ.png" alt="PraxForm Logo" class="logo-image" />
+      <span class="logo-text">PraxForm</span>
     </div>
     
     <h2>Hello <span class="highlight">{{name}}</span>,</h2>
     
-    <p>Thank you for registering with GetListed. To complete your registration and activate your account, please verify your email address by clicking the button below:</p>
+    <p>Thank you for registering with PraxForm. To complete your registration and activate your account, please use the following 6-digit verification code:</p>
     
-    <p>This verification link will expire in 24 hours for security reasons.</p>
+    <div class="verification-code">{{code}}</div>
     
-    <div class="btn-container">
-      <a href="{{link}}" class="btn">Verify My Account</a>
-    </div>
+    <p>This code will expire in 1 hour for security reasons.</p>
     
-    <p>If you did not create an account with GetListed, please ignore this email or contact our support team if you have concerns.</p>
+    <p>If you did not create an account with PraxForm, please ignore this email or contact our support team if you have concerns.</p>
     
     <div class="divider"></div>
     
     <div class="footer">
       <p>Regards,</p>
-      <p class="company-name">GetListed Africa Team</p>
-      <p>If you're having trouble clicking the button, copy and paste the URL below into your web browser:</p>
-      <div class="link-text">{{link}}</div>
+      <p class="company-name">PraxForm Team</p>
     </div>
   </div>
 </body>
