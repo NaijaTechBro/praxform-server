@@ -11,7 +11,7 @@ const sendEmail = async (options) => {
         reply_to,
         template,
         name,
-        link
+        code,
     } = options;
 
     // Validate template parameter
@@ -54,7 +54,7 @@ const sendEmail = async (options) => {
         template: template, // e.g., "welcome"
         context: {
             name,
-            link,
+            code,
         },
     };
 
