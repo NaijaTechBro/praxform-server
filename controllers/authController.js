@@ -331,47 +331,46 @@ const forgotPassword = asyncHandler(async (req, res) => {
     }
 });
 
+// Corrected authController.js
 // @desc    Reset password
 // @route   PUT /api/v1/auth/resetpassword/:token
 // @access  Public
 const resetPassword = asyncHandler(async (req, res) => {
-    const rawToken = req.params.token; 
-    const { password } = req.body; 
+    const rawToken = req.params.token; 
+    const { password } = req.body; 
 
-    if (!rawToken) {
-        res.status(400);
-        throw new Error('Reset token not provided in the URL.');
-    }
+    if (!rawToken) {
+        res.status(400);
+        throw new Error('Reset token not provided in the URL.');
+    }
 
-    // Hash the received token to compare with the stored hashed token
-    const resetPasswordTokenHashed = crypto.createHash('sha256').update(rawToken).digest('hex');
+    // Hash the received token to compare with the stored hashed token
+    const resetPasswordTokenHashed = crypto.createHash('sha256').update(rawToken).digest('hex');
 
-    const user = await User.findOne({
-        resetPasswordToken: resetPasswordTokenHashed,
-        resetPasswordExpires: { $gt: Date.now() }
-    });
+    const user = await User.findOne({
+        resetPasswordToken: resetPasswordTokenHashed,
+        resetPasswordExpires: { $gt: Date.now() }
+    });
 
-    if (!user) {
-        res.status(400);
-        throw new Error('Invalid or expired reset token');
-    }
+    if (!user) {
+        res.status(400);
+        throw new Error('Invalid or expired reset token');
+    }
 
-    // Ensure a new password is provided in the request body
-    if (!password) {
-        res.status(400);
-        throw new Error('Please provide a new password.');
-    }
+    // Ensure a new password is provided in the request body
+    if (!password) {
+        res.status(400);
+        throw new Error('Please provide a new password.');
+    }
 
-    user.passwordHash = password; // password will be hashed by pre-save hook
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
+    user.passwordHash = password; // password will be hashed by pre-save hook
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
 
-    await user.save();
+    await user.save();
 
-    res.status(200).json({ success: true, message: 'Password reset successfully' });
+    res.status(200).json({ success: true, message: 'Password reset successfully' });
 });
-
-
 
 // @desc    Change a logged-in user's password
 // @route   PUT /api/v1/auth/changepassword

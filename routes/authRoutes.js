@@ -20,7 +20,7 @@ router.post('/resendverification', resendVerification);
 router.get('/verifyemail/:code', verifyEmail);
 router.post('/forgotpassword', forgotPassword);
 router.put('/resetpassword/:token', resetPassword);
-router.put('/changepassword', protect, changePassword);
+router.put('/changepassword', protect, audit('user.password_changed', 'user'), changePassword);
 
 // Protected Routes
 router.get('/me', protect, getMe);
