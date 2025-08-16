@@ -8,6 +8,7 @@ const {
     verifyEmail,
     forgotPassword,
     resetPassword,
+    changePassword,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 const audit = require('../middleware/auditMiddleware');
@@ -19,6 +20,7 @@ router.post('/resendverification', resendVerification);
 router.get('/verifyemail/:code', verifyEmail);
 router.post('/forgotpassword', forgotPassword);
 router.put('/resetpassword/:token', resetPassword);
+router.put('/changepassword', protect, changePassword);
 
 // Protected Routes
 router.get('/me', protect, getMe);

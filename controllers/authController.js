@@ -331,12 +331,11 @@ const forgotPassword = asyncHandler(async (req, res) => {
     }
 });
 
-// @desc    Reset password
-// @route   PUT /api/v1/auth/resetpassword/:token
-// @access  Public
+// @desc    Reset password
+// @route   PUT /api/v1/auth/resetpassword/:token
+// @access  Public
 const resetPassword = asyncHandler(async (req, res) => {
-    // Expecting a hex token from the URL parameter
-    const rawToken = req.params.resetToken; 
+    const rawToken = req.params.token; 
     const { password } = req.body; 
 
     if (!rawToken) {
@@ -373,6 +372,64 @@ const resetPassword = asyncHandler(async (req, res) => {
 });
 
 
+
+// @desc    Change a logged-in user's password
+// @route   PUT /api/v1/auth/changepassword
+// @access  Private
+const changePassword = asyncHandler(async (req, res) => {
+    const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+        res.status(400);
+        throw new Error('Please provide both old and new passwords.');
+    }
+
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+        res.status(404);
+        throw new Error('User not found.');
+    }
+
+    // Verify the old password
+    if (!(await user.matchPassword(oldPassword))) {
+        res.status(401);
+        throw new Error('Incorrect old password.');
+    }
+
+    // Update the password
+    user.passwordHash = newPassword; // The pre-save hook will hash this
+    await user.save();
+
+    // Send a password change confirmation email
+    const subject = "Password Changed Successfully";
+    const send_to = user.email;
+    const sent_from = `${process.env.PRAXFORM_FROM_NAME || 'PraxForm Team'} <${process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com'}>`;
+    const reply_to = process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com';
+    const template = "changePassword";
+    const name = user.firstName;
+    const date = new Date().toLocaleString();
+
+    try {
+        await sendEmail({
+            subject,
+            send_to,
+            sent_from,
+            reply_to,
+            template,
+            name,
+            date
+        });
+        console.log('Password change confirmation email sent.');
+    } catch (emailError) {
+        console.error('Error sending password change confirmation email:', emailError);
+        // Do not fail the request if the email fails to send
+    }
+
+    res.status(200).json({ success: true, message: 'Password changed successfully.' });
+});
+
+
 module.exports = {
     registerUser,
     loginUser,
@@ -381,4 +438,5 @@ module.exports = {
     verifyEmail,
     forgotPassword,
     resetPassword,
+    changePassword,
 };
