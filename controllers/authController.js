@@ -301,7 +301,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
 const forgotPassword = asyncHandler(async (req, res) => {
     const { email } = req.body;
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: req.body.email });
 
     if (!user) {
         res.status(404);
@@ -310,13 +310,18 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
     // Generate reset token (hex string for a link)
     const resetToken = crypto.randomBytes(20).toString('hex');
-    user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour expiry
+    user.resetPasswordToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+   
+        // Set expire
+    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
 
     await user.save();
 
     // Send reset email with a link
-    const resetUrl = `${req.protocol}://${process.env.PRAXFORM_HOST}/reset-password/${resetToken}`; // Construct the link
+    const resetUrl = `${req.protocol}://${process.env.PRAXFORM_FRONTEND_HOST}/reset-password/${resetToken}`; // Construct the link
     const emailSubject = "Password Reset Request for PraxForm";
     const sendToEmail = user.email;
     const sentFromEmail = `${process.env.PRAXFORM_FROM_NAME || 'PraxForm Team'} <${process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com'}>`;
@@ -346,44 +351,58 @@ const forgotPassword = asyncHandler(async (req, res) => {
     }
 });
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // @desc    Reset password
 // @route   PUT /api/v1/auth/resetpassword/:token
 // @access  Public
 const resetPassword = asyncHandler(async (req, res) => {
-    const rawToken = req.params.token; 
-    const { password } = req.body; 
-
-    if (!rawToken) {
-        res.status(400);
-        throw new Error('Reset token not provided in the URL.');
-    }
-
-    // Hash the received token to compare with the stored hashed token
-    const resetPasswordTokenHashed = crypto.createHash('sha256').update(rawToken).digest('hex');
-
-    const user = await User.findOne({
-        resetPasswordToken: resetPasswordTokenHashed,
-        resetPasswordExpires: { $gt: Date.now() }
-    });
-
-    if (!user) {
-        res.status(400);
-        throw new Error('Invalid or expired reset token');
-    }
-
-    // Ensure a new password is provided in the request body
-    if (!password) {
-        res.status(400);
-        throw new Error('Please provide a new password.');
-    }
-
-    user.passwordHash = password; // password will be hashed by pre-save hook
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
-
-    await user.save();
-
-    res.status(200).json({ success: true, message: 'Password reset successfully' });
+    try {
+    // Get hashed token
+    const resetPasswordToken = crypto
+      .createHash('sha256')
+      .update(req.params.resetToken)
+      .digest('hex');
+    
+    const user = await User.findOne({
+      resetPasswordToken,
+      resetPasswordExpire: { $gt: Date.now() }
+    });
+    
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired token'
+      });
+    }
+    
+    // Set new password
+    user.password = req.body.password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save();
+    
+    sendTokenResponse(user, 200, res);
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
 });
 
 // @desc    Change a logged-in user's password
@@ -441,6 +460,38 @@ const changePassword = asyncHandler(async (req, res) => {
 
     res.status(200).json({ success: true, message: 'Password changed successfully.' });
 });
+
+
+
+// Helper function to get token from model, create cookie and send response
+const sendTokenResponse = (user, statusCode, res) => {
+  // Create token
+  const token = user.getSignedJwtToken();
+  
+  const options = {
+    expires: new Date(Date.now() + process.env.JWT_COOKIE_EXPIRE * 24 * 60 * 60 * 1000),
+    httpOnly: true
+  };
+  
+  if (process.env.NODE_ENV === 'production') {
+    options.secure = true;
+  }
+  
+  res
+    .status(statusCode)
+    .cookie('token', token, options)
+    .json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role
+      }
+    });
+};
 
 
 module.exports = {
