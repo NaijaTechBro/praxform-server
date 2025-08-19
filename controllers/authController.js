@@ -299,7 +299,6 @@ const verifyEmail = asyncHandler(async (req, res) => {
 // @route   POST /api/v1/auth/forgotpassword
 // @access  Public
 const forgotPassword = asyncHandler(async (req, res) => {
-    const { email } = req.body;
 
     const user = await User.findOne({ email: req.body.email });
 
@@ -375,7 +374,7 @@ const resetPassword = asyncHandler(async (req, res) => {
     // Get hashed token
     const resetPasswordToken = crypto
       .createHash('sha256')
-      .update(req.params.resetToken)
+      .update(req.params.token)
       .digest('hex');
     
     const user = await User.findOne({
