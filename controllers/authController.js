@@ -23,6 +23,21 @@ const registerUser = asyncHandler(async (req, res) => {
             throw new Error('Please provide all required user (firstName, lastName, email, password) and organization (name, industry) fields.');
         }
 
+        // --- Email Format Validation ---
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            res.status(400);
+            throw new Error('Invalid email format.');
+        }
+        
+        // --- Password Rules Validation ---
+        // must be greater than 8 digits, one number, and one special character
+        const passwordRulesRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
+        if (!passwordRulesRegex.test(password)) {
+            res.status(400);
+            throw new Error('Password must be at least 8 characters long, contain at least one number and one special character.');
+        }
+
         const userExists = await User.findOne({ email });
         if (userExists) {
             res.status(400);
@@ -331,7 +346,6 @@ const forgotPassword = asyncHandler(async (req, res) => {
     }
 });
 
-// Corrected authController.js
 // @desc    Reset password
 // @route   PUT /api/v1/auth/resetpassword/:token
 // @access  Public
