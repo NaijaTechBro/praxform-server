@@ -160,6 +160,22 @@ const loginUser = asyncHandler(async (req, res) => {
     }
 });
 
+// @desc    Logout user
+// @route   GET /api/v1/auth/logout
+// @access  Public
+const logout = asyncHandler(async (req, res) => {
+  res.cookie('token', 'none', {
+    expires: new Date(Date.now() + 10 * 1000),
+    httpOnly: true
+  });
+  
+  res.status(200).json({
+    success: true,
+    message: 'User logged out successfully'
+  });
+});
+
+
 // @desc    Get user profile
 // @route   GET /api/v1/auth/me
 // @access  Private
@@ -315,7 +331,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
     .digest('hex');
    
         // Set expire
-    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
 
     await user.save();
 
@@ -343,27 +359,12 @@ const forgotPassword = asyncHandler(async (req, res) => {
     } catch (err) {
         console.error(err);
         user.resetPasswordToken = undefined;
-        user.resetPasswordExpires = undefined;
+        user.resetPasswordExpire = undefined;
         await user.save(); // Revert token on error
         res.status(500);
         throw new Error('Email could not be sent');
     }
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 // @desc    Reset password
@@ -374,7 +375,7 @@ const resetPassword = asyncHandler(async (req, res) => {
     // Get hashed token
     const resetPasswordToken = crypto
       .createHash('sha256')
-      .update(req.params.token)
+      .update(req.params.resetToken)
       .digest('hex');
     
     const user = await User.findOne({
@@ -502,4 +503,5 @@ module.exports = {
     forgotPassword,
     resetPassword,
     changePassword,
+    logout,
 };
