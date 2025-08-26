@@ -110,6 +110,7 @@ const registerUser = asyncHandler(async (req, res) => {
                 firstName: user.firstName,
                 lastName: user.lastName,
                 email: user.email,
+                currentOrganization: user.currentOrganization, // ADDED: Include currentOrganization
                 message: 'User registered successfully. Please check your email for the verification code.'
             });
 
@@ -152,6 +153,7 @@ const loginUser = asyncHandler(async (req, res) => {
             firstName: user.firstName,
             lastName: user.lastName,
             email: user.email,
+            currentOrganization: user.currentOrganization, // ADDED: Include currentOrganization
             token: generateToken(user._id),
         });
     } else {
@@ -180,7 +182,8 @@ const logout = asyncHandler(async (req, res) => {
 // @route   GET /api/v1/auth/me
 // @access  Private
 const getMe = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.user._id);
+    // Populate the 'currentOrganization' field if it's a reference in your User model
+    const user = await User.findById(req.user._id).populate('currentOrganization', 'name');
 
     if (user) {
         res.json({
@@ -188,6 +191,9 @@ const getMe = asyncHandler(async (req, res) => {
             firstName: user.firstName,
             lastName: user.lastName,
             email: user.email,
+            currentOrganization: user.currentOrganization, // ADDED: Include currentOrganization
+            // Note: If currentOrganization is populated, it will be an object.
+            // If you only need the ID, you can do user.currentOrganization._id
         });
     } else {
         res.status(404);
@@ -329,7 +335,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
     .createHash('sha256')
     .update(resetToken)
     .digest('hex');
-   
+    
         // Set expire
     user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
 
@@ -367,11 +373,11 @@ const forgotPassword = asyncHandler(async (req, res) => {
 });
 
 
-// @desc    Reset password
-// @route   PUT /api/v1/auth/resetpassword/:token
-// @access  Public
+// @desc    Reset password
+// @route   PUT /api/v1/auth/resetpassword/:token
+// @access  Public
 const resetPassword = asyncHandler(async (req, res) => {
-    try {
+    try {
     // Get hashed token
     const resetPasswordToken = crypto
       .createHash('sha256')
@@ -465,32 +471,33 @@ const changePassword = asyncHandler(async (req, res) => {
 
 // Helper function to get token from model, create cookie and send response
 const sendTokenResponse = (user, statusCode, res) => {
-  // Create token
-  const token = user.getSignedJwtToken();
-  
-  const options = {
-    expires: new Date(Date.now() + process.env.JWT_COOKIE_EXPIRE * 24 * 60 * 60 * 1000),
-    httpOnly: true
-  };
-  
-  if (process.env.NODE_ENV === 'production') {
-    options.secure = true;
-  }
-  
-  res
-    .status(statusCode)
-    .cookie('token', token, options)
-    .json({
-      success: true,
-      token,
-      user: {
-        id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        role: user.role
-      }
-    });
+    // Create token
+    const token = user.getSignedJwtToken();
+    
+    const options = {
+        expires: new Date(Date.now() + process.env.JWT_COOKIE_EXPIRE * 24 * 60 * 60 * 1000),
+        httpOnly: true
+    };
+    
+    if (process.env.NODE_ENV === 'production') {
+        options.secure = true;
+    }
+    
+    res
+        .status(statusCode)
+        .cookie('token', token, options)
+        .json({
+            success: true,
+            token,
+            user: {
+                id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                role: user.role,
+                currentOrganization: user.currentOrganization // ADDED: Ensure currentOrganization is included
+            }
+        });
 };
 
 
