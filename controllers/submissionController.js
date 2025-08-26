@@ -1,6 +1,9 @@
 const asyncHandler = require('express-async-handler');
 const Submission = require('../models/Submission');
 const Form = require('../models/Form');
+const Webhook = require('../models/Webhook');
+const axios = require('axios');
+const crypto = require('crypto');
 
 // @desc    Create a new submission (public)
 // @route   POST /api/v1/submissions
@@ -14,8 +17,7 @@ const createSubmission = asyncHandler(async (req, res) => {
         res.status(404);
         throw new Error('Form not found');
     }
-    
-    // Logic to validate accessCode if required by the form
+
     const recipient = form.recipients.find(r => r.uniqueAccessCode === accessCode);
     if (!recipient) {
         res.status(403);
@@ -28,16 +30,49 @@ const createSubmission = asyncHandler(async (req, res) => {
         data,
         encryptedData,
         files,
-        status: 'complete'
+        status: 'complete',
+        recipientEmail: recipient.email // Add recipient email for reference
     });
 
     const createdSubmission = await submission.save();
 
-    // Update form's submission count and recipient status
     form.submissionCount += 1;
     recipient.status = 'completed';
     await form.save();
-    
+
+    // ---- WEBHOOK TRIGGER LOGIC ----
+    const webhooks = await Webhook.find({
+        organization: form.organization,
+        status: 'active',
+        events: 'submission.created'
+    });
+
+    const payload = {
+        event: 'submission.created',
+        formId: form._id,
+        submissionId: createdSubmission._id,
+        timestamp: new Date().toISOString(),
+        data: createdSubmission
+    };
+
+    for (const webhook of webhooks) {
+        try {
+            const hmac = crypto.createHmac('sha256', webhook.secret);
+            hmac.update(JSON.stringify(payload));
+            const signature = hmac.digest('hex');
+
+            await axios.post(webhook.endpoint, payload, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Webhook-Signature': signature,
+                }
+            });
+            console.log(`Webhook sent to ${webhook.endpoint}`);
+        } catch (error) {
+            console.error(`Failed to send webhook to ${webhook.endpoint}: ${error.message}`);
+        }
+    }
+
     res.status(201).json(createdSubmission);
 });
 
@@ -63,7 +98,6 @@ const getSubmissionById = asyncHandler(async (req, res) => {
     const submission = await Submission.findById(req.params.id);
 
     if (submission && submission.organization.toString() === req.user.currentOrganization.toString()) {
-        // Here you would add logic to decrypt 'encryptedData' before sending
         res.json(submission);
     } else {
         res.status(404);
@@ -85,6 +119,5 @@ const deleteSubmission = asyncHandler(async (req, res) => {
         throw new Error('Submission not found or not part of the current organization');
     }
 });
-
 
 module.exports = { createSubmission, getSubmissionsByForm, getSubmissionById, deleteSubmission };
