@@ -104,13 +104,16 @@ const registerUser = asyncHandler(async (req, res) => {
             });
 
             // If everything is successful, send a success response
+            // Populate currentOrganization before sending the response
+            const populatedUser = await User.findById(user._id).populate('currentOrganization', 'name');
+
             return res.status(201).json({
                 success: true,
-                _id: user._id,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                email: user.email,
-                currentOrganization: user.currentOrganization, // ADDED: Include currentOrganization
+                _id: populatedUser._id,
+                firstName: populatedUser.firstName,
+                lastName: populatedUser.lastName,
+                email: populatedUser.email,
+                currentOrganization: populatedUser.currentOrganization, // Now populated
                 message: 'User registered successfully. Please check your email for the verification code.'
             });
 
@@ -148,13 +151,16 @@ const loginUser = asyncHandler(async (req, res) => {
     const user = await User.findOne({ email });
 
     if (user && (await user.matchPassword(password))) {
+        // Populate currentOrganization before sending the response
+        const populatedUser = await User.findById(user._id).populate('currentOrganization', 'name');
+
         res.json({
-            _id: user._id,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            email: user.email,
-            currentOrganization: user.currentOrganization, // ADDED: Include currentOrganization
-            token: generateToken(user._id),
+            _id: populatedUser._id,
+            firstName: populatedUser.firstName,
+            lastName: populatedUser.lastName,
+            email: populatedUser.email,
+            currentOrganization: populatedUser.currentOrganization, // Now populated
+            token: generateToken(populatedUser._id),
         });
     } else {
         res.status(401);
@@ -191,9 +197,7 @@ const getMe = asyncHandler(async (req, res) => {
             firstName: user.firstName,
             lastName: user.lastName,
             email: user.email,
-            currentOrganization: user.currentOrganization, // ADDED: Include currentOrganization
-            // Note: If currentOrganization is populated, it will be an object.
-            // If you only need the ID, you can do user.currentOrganization._id
+            currentOrganization: user.currentOrganization, // Already correctly populated here
         });
     } else {
         res.status(404);
@@ -470,7 +474,7 @@ const changePassword = asyncHandler(async (req, res) => {
 
 
 // Helper function to get token from model, create cookie and send response
-const sendTokenResponse = (user, statusCode, res) => {
+const sendTokenResponse = async (user, statusCode, res) => { // Made async to allow populate
     // Create token
     const token = user.getSignedJwtToken();
     
@@ -483,6 +487,9 @@ const sendTokenResponse = (user, statusCode, res) => {
         options.secure = true;
     }
     
+    // Populate currentOrganization before sending response
+    const populatedUser = await User.findById(user._id).populate('currentOrganization', 'name');
+
     res
         .status(statusCode)
         .cookie('token', token, options)
@@ -490,12 +497,12 @@ const sendTokenResponse = (user, statusCode, res) => {
             success: true,
             token,
             user: {
-                id: user._id,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                email: user.email,
-                role: user.role,
-                currentOrganization: user.currentOrganization // ADDED: Ensure currentOrganization is included
+                id: populatedUser._id,
+                firstName: populatedUser.firstName,
+                lastName: populatedUser.lastName,
+                email: populatedUser.email,
+                role: populatedUser.role,
+                currentOrganization: populatedUser.currentOrganization // Now populated
             }
         });
 };
