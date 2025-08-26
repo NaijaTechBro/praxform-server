@@ -148,7 +148,7 @@ const asyncHandler = require('express-async-handler');
 const Form = require('../models/Form');
 const Organization = require('../models/Organization');
 const crypto = require('crypto');
-const sendEmail = require('../utils/sendEmail'); // Import your sendEmail utility
+const sendEmail = require('../utils/email/sendEmail');
 
 // @desc    Create a new form
 // @route   POST /api/v1/forms
