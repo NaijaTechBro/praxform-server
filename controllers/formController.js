@@ -121,12 +121,12 @@ const sendForm = asyncHandler(async (req, res) => {
                 await sendEmail({
                     send_to: recipient.email,
                     subject: `You have a new form to fill out: ${form.name}`,
-                    sent_from: process.env.PRAXFORM_EMAIL_USER,
+                    sent_from: `${process.env.PRAXFORM_FROM_NAME || 'PraxForm Team'} <${process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com'}>`,
                     reply_to: process.env.PRAXFORM_EMAIL_USER,
-                    template: 'form-invitation', // Assumes you have a handlebar template for this
+                    template: 'form-invitation',
                     name: recipient.name,
                     link: formUrl,
-                    message, // Pass the custom message to the email template
+                    message, 
                     date: new Date().toLocaleDateString()
                 });
                 sentTo.push({ email: recipient.email, status: 'sent' });
