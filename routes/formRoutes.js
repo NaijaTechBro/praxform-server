@@ -17,7 +17,7 @@ router.route('/')
     .get(protect, getForms);
 
 router.route('/:id')
-    .get(protect, getFormById) // Viewing a form might not need an audit log, depends on requirements
+    .get(protect, getFormById) 
     .put(protect, audit('form.updated', 'form'), updateForm)
     .delete(protect, audit('form.deleted', 'form'), deleteForm);
 

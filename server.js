@@ -11,6 +11,7 @@ const organizationRoutes = require('./routes/organizationRoutes');
 const formRoutes = require('./routes/formRoutes');
 const submissionRoutes = require('./routes/submissionRoutes');
 const webhookRoutes = require('./routes/webhookRoutes');
+const auditRoutes = require('./routes/auditRoutes');
 
 dotenv.config();
 
@@ -28,6 +29,7 @@ app.use('/api/v1/organizations', organizationRoutes);
 app.use('/api/v1/forms', formRoutes);
 app.use('/api/v1/submissions', submissionRoutes);
 app.use('/api/v1/webhooks', webhookRoutes);
+app.use('/api/v1/audit-logs', auditRoutes);
 
 // Middleware
 app.use(notFound);

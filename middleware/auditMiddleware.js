@@ -5,8 +5,6 @@ const audit = (action, resourceType) => asyncHandler(async (req, res, next) => {
     // Let the actual route handler run first
     next();
 
-    // The handler is finished, now we can log the result.
-    // We wrap this in a listener for the 'finish' event on the response object.
     res.on('finish', async () => {
         try {
             let resourceId = req.params.id || (req.body && req.body.formId);
