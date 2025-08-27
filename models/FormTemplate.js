@@ -6,7 +6,7 @@ const FormTemplateSchema = new mongoose.Schema({
     organization: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', required: true },
     isPublic: { type: Boolean, default: false },
     category: { type: String, enum: ['payment', 'tax', 'onboarding', 'consent', 'survey', 'other'], default: 'other' },
-    fields: { type: Array, default: [] }, // Simplified for brevity
+    fields: { type: Array, default: [] },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
 

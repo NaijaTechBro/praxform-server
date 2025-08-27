@@ -12,6 +12,7 @@ const formRoutes = require('./routes/formRoutes');
 const submissionRoutes = require('./routes/submissionRoutes');
 const webhookRoutes = require('./routes/webhookRoutes');
 const auditRoutes = require('./routes/auditRoutes');
+const formtemplateRoutes = require('./routes/formtemplateRoutes');
 
 dotenv.config();
 
@@ -30,6 +31,7 @@ app.use('/api/v1/forms', formRoutes);
 app.use('/api/v1/submissions', submissionRoutes);
 app.use('/api/v1/webhooks', webhookRoutes);
 app.use('/api/v1/audit-logs', auditRoutes);
+app.use('/api/v1/form-templates', formtemplateRoutes);
 
 // Middleware
 app.use(notFound);
