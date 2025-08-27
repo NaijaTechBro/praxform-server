@@ -14,7 +14,7 @@ const SubmissionSchema = new mongoose.Schema({
         url: String
     }],
     status: { type: String, enum: ['complete', 'partial', 'flagged'], default: 'complete' },
-    recipientEmail: { type: String }, // Add this field!
+    recipientEmail: { type: String },
     expiresAt: { type: Date }
 }, { timestamps: true });
 

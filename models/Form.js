@@ -15,7 +15,7 @@ const FormSchema = new mongoose.Schema({
     }],
     submissionCount: { type: Number, default: 0 },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    encryptionKey: { type: String, required: false } // This field is crucial
+    encryptionKey: { type: String, required: false } 
 }, { timestamps: true });
 
 const Form = mongoose.model('Form', FormSchema);
