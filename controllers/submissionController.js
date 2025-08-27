@@ -31,7 +31,7 @@ const createSubmission = asyncHandler(async (req, res) => {
         encryptedData,
         files,
         status: 'complete',
-        recipientEmail: recipient.email
+        recipientEmail: recipient.email // Added this line to store the email
     });
 
     const createdSubmission = await submission.save();
@@ -77,7 +77,7 @@ const createSubmission = asyncHandler(async (req, res) => {
 });
 
 // @desc    Get a form by ID and access code (public)
-// @route   GET /api/v1/public/forms/:id/:accessCode
+// @route   GET /api/v1/submissions/:id/:accessCode
 // @access  Public
 const getPublicFormByAccessCode = asyncHandler(async (req, res) => {
     const { id, accessCode } = req.params;
