@@ -26,7 +26,7 @@ const createForm = asyncHandler(async (req, res) => {
         layout,
         createdBy: req.user._id,
         status: 'draft',
-        encryptionKey: crypto.randomBytes(32).toString('hex'), // Generate a unique key for the form
+        encryptionKey: crypto.randomBytes(32).toString('hex'),
     });
 
     const createdForm = await form.save();
