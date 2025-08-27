@@ -31,7 +31,7 @@ const createSubmission = asyncHandler(async (req, res) => {
         encryptedData,
         files,
         status: 'complete',
-        recipientEmail: recipient.email // Added this line to store the email
+        recipientEmail: recipient.email
     });
 
     const createdSubmission = await submission.save();
@@ -81,7 +81,6 @@ const createSubmission = asyncHandler(async (req, res) => {
 // @access  Public
 const getPublicFormByAccessCode = asyncHandler(async (req, res) => {
     const { id, accessCode } = req.params;
-
     const form = await Form.findById(id);
 
     if (!form) {
@@ -98,14 +97,14 @@ const getPublicFormByAccessCode = asyncHandler(async (req, res) => {
         throw new Error('Invalid or expired access code');
     }
     
-    // Return only the necessary form details for public viewing
     const publicForm = {
         _id: form._id,
         name: form.name,
         description: form.description,
         fields: form.fields,
         organization: form.organization,
-        status: form.status
+        status: form.status,
+        encryptionKey: form.encryptionKey,
     };
 
     res.json(publicForm);
