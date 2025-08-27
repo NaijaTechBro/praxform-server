@@ -11,6 +11,7 @@ const SubmissionSchema = new mongoose.Schema({
         fileType: String,
         fileSize: Number,
         publicId: String, // Cloudinary ID
+        recipientEmail: { type: String },
         url: String
     }],
     status: { type: String, enum: ['complete', 'partial', 'flagged'], default: 'complete' },
