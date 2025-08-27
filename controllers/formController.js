@@ -1,4 +1,3 @@
-
 const asyncHandler = require('express-async-handler');
 const Form = require('../models/Form');
 const Organization = require('../models/Organization');
@@ -27,6 +26,7 @@ const createForm = asyncHandler(async (req, res) => {
         layout,
         createdBy: req.user._id,
         status: 'draft',
+        encryptionKey: crypto.randomBytes(32).toString('hex'), // Generate a unique key for the form
     });
 
     const createdForm = await form.save();
@@ -113,9 +113,9 @@ const sendForm = asyncHandler(async (req, res) => {
                 status: 'pending'
             });
 
-            // Construct the unique link for the recipient
+            // Construct the unique link for the recipient using the provided frontend host
             const formUrl = `${req.protocol}://${process.env.PRAXFORM_FRONTEND_HOST}/form/${form._id}/${uniqueAccessCode}`;
-
+            
             // Use the sendEmail utility to dispatch the email
             try {
                 await sendEmail({

@@ -5,6 +5,7 @@ const FormSchema = new mongoose.Schema({
     description: { type: String, trim: true },
     organization: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', required: true },
     template: { type: mongoose.Schema.Types.ObjectId, ref: 'FormTemplate' },
+    encryptionKey: { type: String, required: false },
     fields: { type: Array, default: [] },
     status: { type: String, enum: ['draft', 'active', 'paused', 'archived'], default: 'draft' },
     recipients: [{
