@@ -31,7 +31,7 @@ const createSubmission = asyncHandler(async (req, res) => {
         encryptedData,
         files,
         status: 'complete',
-        recipientEmail: recipient.email // Add recipient email for reference
+        recipientEmail: recipient.email
     });
 
     const createdSubmission = await submission.save();
@@ -74,6 +74,41 @@ const createSubmission = asyncHandler(async (req, res) => {
     }
 
     res.status(201).json(createdSubmission);
+});
+
+// @desc    Get a form by ID and access code (public)
+// @route   GET /api/v1/public/forms/:id/:accessCode
+// @access  Public
+const getPublicFormByAccessCode = asyncHandler(async (req, res) => {
+    const { id, accessCode } = req.params;
+
+    const form = await Form.findById(id);
+
+    if (!form) {
+        res.status(404);
+        throw new Error('Form not found');
+    }
+
+    const recipient = form.recipients.find(
+        (r) => r.uniqueAccessCode === accessCode && r.status === 'pending'
+    );
+
+    if (!recipient) {
+        res.status(403);
+        throw new Error('Invalid or expired access code');
+    }
+    
+    // Return only the necessary form details for public viewing
+    const publicForm = {
+        _id: form._id,
+        name: form.name,
+        description: form.description,
+        fields: form.fields,
+        organization: form.organization,
+        status: form.status
+    };
+
+    res.json(publicForm);
 });
 
 // @desc    Get submissions for a form
@@ -120,4 +155,10 @@ const deleteSubmission = asyncHandler(async (req, res) => {
     }
 });
 
-module.exports = { createSubmission, getSubmissionsByForm, getSubmissionById, deleteSubmission };
+module.exports = { 
+    createSubmission, 
+    getPublicFormByAccessCode,
+    getSubmissionsByForm, 
+    getSubmissionById, 
+    deleteSubmission 
+};
