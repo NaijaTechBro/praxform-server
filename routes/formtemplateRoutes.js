@@ -7,7 +7,7 @@ const {
     updateFormTemplate,
     deleteFormTemplate,
 } = require('../controllers/formtemplateController');
-const { protect } = require('../middleware/authMiddleware'); // Your authentication middleware
+const { protect } = require('../middleware/authMiddleware');
 
 router.route('/')
     .post(protect, createFormTemplate)
