@@ -521,16 +521,39 @@
 // };
 
 
+
+
+
+
+
+
+
+
+
+
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 const Organization = require('../models/Organization');
-const jwt = require('jsonwebtoken'); // Import jsonwebtoken
+const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const sendEmail = require('../utils/email/sendEmail');
 
 // Helper function to generate a 6-digit numeric code
 const generateSixDigitCode = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+// Helper function to parse expiration time from string (e.g., "7d", "15m")
+const parseExpiry = (expiryString) => {
+    const num = parseInt(expiryString);
+    const unit = expiryString.slice(-1);
+    switch (unit) {
+        case 'd': return num * 24 * 60 * 60 * 1000;
+        case 'h': return num * 60 * 60 * 1000;
+        case 'm': return num * 60 * 1000;
+        case 's': return num * 1000;
+        default: return num;
+    }
 };
 
 // @desc      Generate access and refresh tokens
@@ -657,7 +680,6 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 });
 
-
 // @desc      Auth user & get token
 // @route     POST /api/v1/auth/login
 // @access    Public
@@ -667,19 +689,19 @@ const loginUser = asyncHandler(async (req, res) => {
     const user = await User.findOne({ email });
 
     if (user && (await user.matchPassword(password))) {
-        // Generate both access and refresh tokens
         const { accessToken, refreshToken } = generateTokens(user._id);
 
-        // Populate currentOrganization before sending the response
         const populatedUser = await User.findById(user._id).populate('currentOrganization', 'name');
 
-        // Set the refresh token as a secure, HTTP-only cookie
+        // Get cookie expiry in milliseconds
+        const cookieExpiryMs = parseExpiry(process.env.JWT_REFRESH_EXPIRY);
+
         const cookieOptions = {
-            expires: new Date(Date.now() + process.env.JWT_REFRESH_EXPIRY * 24 * 60 * 60 * 1000), // Match token expiry
+            expires: new Date(Date.now() + cookieExpiryMs),
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            path: '/api/v1/auth/refresh-token' // The path for the refresh endpoint
+            path: '/api/v1/auth/refresh-token'
         };
 
         res.cookie('refreshToken', refreshToken, cookieOptions);
@@ -722,12 +744,11 @@ const refreshToken = asyncHandler(async (req, res) => {
             throw new Error('Invalid token user');
         }
 
-        // Generate a new access token and a new refresh token
         const { accessToken, refreshToken: newRefreshToken } = generateTokens(user._id);
 
-        // Update the refresh token cookie with the new one
+        const cookieExpiryMs = parseExpiry(process.env.JWT_REFRESH_EXPIRY);
         const cookieOptions = {
-            expires: new Date(Date.now() + process.env.JWT_REFRESH_EXPIRY * 24 * 60 * 60 * 1000),
+            expires: new Date(Date.now() + cookieExpiryMs),
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
@@ -736,14 +757,12 @@ const refreshToken = asyncHandler(async (req, res) => {
 
         res.cookie('refreshToken', newRefreshToken, cookieOptions);
 
-        // Send the new access token to the client
         res.json({
             success: true,
             accessToken,
         });
 
     } catch (err) {
-        // If refresh token is invalid or expired
         res.status(401);
         throw new Error('Refresh token invalid or expired. Please log in again.');
     }
@@ -753,9 +772,11 @@ const refreshToken = asyncHandler(async (req, res) => {
 // @route     GET /api/v1/auth/logout
 // @access    Private
 const logout = asyncHandler(async (req, res) => {
-    // Clear both the access token from the client and the refresh token cookie
+    // Get a very short expiration time to clear the cookie
+    const cookieExpiryMs = parseExpiry('10s');
+    
     res.cookie('refreshToken', 'none', {
-        expires: new Date(Date.now() + 10 * 1000), // Expire quickly
+        expires: new Date(Date.now() + cookieExpiryMs),
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
@@ -974,8 +995,10 @@ const resetPassword = asyncHandler(async (req, res) => {
 
         const { accessToken, refreshToken } = generateTokens(user._id);
 
+        // Get cookie expiry in milliseconds
+        const cookieExpiryMs = parseExpiry(process.env.JWT_REFRESH_EXPIRY);
         const cookieOptions = {
-            expires: new Date(Date.now() + process.env.JWT_REFRESH_EXPIRY * 24 * 60 * 60 * 1000),
+            expires: new Date(Date.now() + cookieExpiryMs),
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
@@ -1054,7 +1077,6 @@ const changePassword = asyncHandler(async (req, res) => {
 
     res.status(200).json({ success: true, message: 'Password changed successfully.' });
 });
-
 
 module.exports = {
     registerUser,
