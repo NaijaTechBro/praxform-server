@@ -46,14 +46,20 @@ const getForms = asyncHandler(async (req, res) => {
 // @route   GET /api/v1/forms/:id
 // @access  Private
 const getFormById = asyncHandler(async (req, res) => {
-    const form = await Form.findById(req.params.id);
+    const form = await Form.findById(req.params.id);
 
-    if (form && form.organization.toString() === req.user.currentOrganization.toString()) {
-        res.json(form);
-    } else {
-        res.status(404);
-        throw new Error('Form not found or not part of the current organization');
-    }
+    if (form && form.organization.toString() === req.user.currentOrganization.toString()) {
+        // Check if the form has an encryption key
+        if (!form.encryptionKey) {
+            // If not, generate a new one, save it, and then return the updated form
+            form.encryptionKey = crypto.randomBytes(32).toString('hex');
+            await form.save();
+        }
+        res.json(form);
+    } else {
+        res.status(404);
+        throw new Error('Form not found or not part of the current organization');
+    }
 });
 
 // @desc    Update a form
