@@ -8,7 +8,7 @@ const OrganizationSchema = new mongoose.Schema({
     logo: { url: String, publicId: String },
     website: { type: String, trim: true },
     address: { street: String, city: String, state: String, zip: String, country: String },
-    phone: { type: String, trim: true },
+    phoneNumber: { type: Number, trim: true },
     email: { type: String, trim: true, lowercase: true },
     isVerified: { type: Boolean, default: false },
     members: [{
