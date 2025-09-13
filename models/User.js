@@ -28,11 +28,14 @@ const UserSchema = new mongoose.Schema({
     emailVerificationTokenExpires: Date,
     resetPasswordToken: String,
     resetPasswordExpires: Date,
+    // Fields for login with code
+    loginCode: String,
+    loginCodeExpires: Date,
     metadata: { type: Map, of: String }
 }, { timestamps: true });
 
 UserSchema.pre('save', async function(next) {
-    if (this.isModified('passwordHash') && this.authMethod === 'local') {
+    if (this.isModified('passwordHash') && this.authMethod === 'local' && this.passwordHash) {
         const salt = await bcrypt.genSalt(10);
         this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
     }
