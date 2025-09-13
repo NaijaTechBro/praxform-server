@@ -831,32 +831,52 @@ const verifyMfa = asyncHandler(async (req, res) => {
 // @access    Public
 const googleAuth = asyncHandler(async (req, res) => {
     const { token } = req.body;
+    if (!token) {
+        res.status(400);
+        throw new Error("Google token is required");
+    }
 
-    const ticket = await client.verifyIdToken({
+    const ticket = await googleClient.verifyIdToken({
         idToken: token,
         audience: process.env.PRAXFORM_GOOGLE_CLIENT_ID,
     });
-    const { email, given_name, family_name } = ticket.getPayload();
+    const { name, email, given_name, family_name } = ticket.getPayload();
 
     let user = await User.findOne({ email });
 
-    if (user && user.authMethod !== 'google') {
-        res.status(400);
-        throw new Error('This email is already registered with a password. Please sign in with your password.');
-    }
-
-    if (!user) {
-        user = await User.create({
+    if (user) {
+        // User exists, log them in
+        if (user.authMethod !== 'google') {
+            res.status(400);
+            throw new Error(`This email is registered with a different method. Please use ${user.authMethod} to log in.`);
+        }
+        await sendTokenResponse(user, 200, res);
+    } else {
+        // User does not exist, create a new user and organization
+        const organizationName = `${given_name}'s Organization`;
+        const newOrganization = await Organization.create({
+            name: organizationName,
+            slug: organizationName.toLowerCase().replace(/\s+/g, '-'),
+            industry: "Other" // Default industry
+        });
+        
+        const newUser = await User.create({
             firstName: given_name,
-            lastName: family_name,
+            lastName: family_name || ' ',
             email,
             authMethod: 'google',
             isEmailVerified: true,
+            organizations: [newOrganization._id],
+            currentOrganization: newOrganization._id,
         });
-    }
+        
+        newOrganization.members.push({ userId: newUser._id, role: 'owner' });
+        await newOrganization.save();
 
-    await sendTokenResponse(user, 200, res);
+        await sendTokenResponse(newUser, 201, res);
+    }
 });
+
 
 // @desc      Refresh access token
 // @route     POST /api/v1/auth/refresh-token
