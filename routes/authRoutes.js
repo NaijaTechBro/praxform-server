@@ -54,7 +54,7 @@ const router = express.Router();
 const {
     registerUser,
     loginUser,
-    verifyMfa,
+    verifyMfa, // <-- Updated
     googleAuth,
     getMe,
     resendVerification,
