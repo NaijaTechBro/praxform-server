@@ -9,7 +9,8 @@ const sendEmail = require('../utils/email/sendEmail');
 // Correctly initialize the Google OAuth2 Client with the Redirect URI
 const googleClient = new OAuth2Client(
     process.env.PRAXFORM_GOOGLE_CLIENT_ID,
-    process.env.PRAXFORM_GOOGLE_CLIENT_SECRET
+    process.env.PRAXFORM_GOOGLE_CLIENT_SECRET,
+    process.env.PRAXFORM_GOOGLE_REDIRECT_URI
 );
 
 // Helper function to generate a 6-digit numeric code
@@ -230,43 +231,47 @@ const verifyMfa = asyncHandler(async (req, res) => {
 // @desc      Authenticate with Google using Authorization Code Flow
 // @route     POST /api/v1/auth/google
 // @access    Public
+
+
+// @desc      Authenticate with Google
+// @route     POST /api/v1/auth/google
+// @access    Public
 const googleAuth = asyncHandler(async (req, res) => {
-    // Receive both the code and the redirectUri from the frontend
-    const { code, redirectUri } = req.body;
+    // We only need the authorization code from the frontend
+    const { code } = req.body;
     if (!code) {
         res.status(400);
         throw new Error("Google authorization code is required");
     }
-    if (!redirectUri) {
-        res.status(400);
-        throw new Error("Redirect URI is required for Google authentication");
-    }
 
     try {
-        // Exchange authorization code for tokens, providing the dynamic redirectUri from the frontend
-        const { tokens } = await googleClient.getToken({ code, redirect_uri: redirectUri });
+        // Exchange authorization code for tokens. The redirect_uri is validated automatically
+        // by the googleClient instance based on how it was initialized.
+        const { tokens } = await googleClient.getToken(code);
         const idToken = tokens.id_token;
 
         if (!idToken) {
             res.status(400);
             throw new Error("Failed to retrieve ID token from Google");
         }
-
+        
         const ticket = await googleClient.verifyIdToken({
-            idToken: idToken,
+            idToken,
             audience: process.env.PRAXFORM_GOOGLE_CLIENT_ID,
         });
-        const { email, given_name, family_name } = ticket.getPayload();
 
+        const { name, email, given_name, family_name } = ticket.getPayload();
         let user = await User.findOne({ email });
 
         if (user) {
+            // User exists, log them in
             if (user.authMethod !== 'google') {
-                res.status(400).json({ message: `This email is registered with a different method. Please use ${user.authMethod} to log in.`});
-                return;
+                res.status(400);
+                throw new Error(`This email is registered with a different method. Please use ${user.authMethod} to log in.`);
             }
             await sendTokenResponse(user, 200, res);
         } else {
+            // User does not exist, create a new user and organization
             const organizationName = `${given_name}'s Organization`;
             const newOrganization = await Organization.create({
                 name: organizationName,
