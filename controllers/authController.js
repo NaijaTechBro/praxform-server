@@ -227,6 +227,7 @@ const verifyMfa = asyncHandler(async (req, res) => {
     await sendTokenResponse(user, 200, res);
 });
 
+
 // @desc      Authenticate with Google
 // @route     POST /api/v1/auth/google
 // @access    Public
@@ -254,41 +255,18 @@ const googleAuth = asyncHandler(async (req, res) => {
         const { email, given_name, family_name } = ticket.getPayload();
         let user = await User.findOne({ email });
 
-        // --- Helper function to initiate MFA ---
-        const initiateMfaFlow = async (userToVerify) => {
-            const code = generateSixDigitCode();
-            userToVerify.loginCode = crypto.createHash('sha256').update(code).digest('hex');
-            userToVerify.loginCodeExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-            await userToVerify.save();
-
-            await sendEmail({
-                subject: "Your PraxForm Login Code",
-                send_to: userToVerify.email,
-                sent_from: `${process.env.PRAXFORM_FROM_NAME || 'PraxForm Team'} <${process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com'}>`,
-                reply_to: process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com',
-                template: "login-code",
-                name: userToVerify.firstName,
-                code: code
-            });
-
-            res.status(200).json({
-                success: true,
-                mfaRequired: true,
-                email: userToVerify.email, // Send email to frontend
-                message: 'Please check your email for a login code.'
-            });
-        };
-
         if (user) {
-            // --- USER ALREADY EXISTS ---
+            // --- SCENARIO 1: EXISTING USER (SIGN-IN) ---
             if (user.authMethod !== 'google') {
                 res.status(400);
                 throw new Error(`This email is registered with a different method. Please use ${user.authMethod} to log in.`);
             }
-            // FIX: Instead of logging in, trigger the MFA flow
-            await initiateMfaFlow(user);
+            
+            // REVERTED: Log the existing user in directly.
+            await sendTokenResponse(user, 200, res);
+
         } else {
-            // --- SCENARIO 2: NEW USER SIGN-UP ---
+            // --- SCENARIO 2: NEW USER (SIGN-UP) ---
             const organizationName = `${given_name}'s Organization`;
             const baseSlug = organizationName.toLowerCase().replace(/'/g, '').replace(/\s+/g, '-');
             const randomSuffix = crypto.randomBytes(4).toString('hex');
@@ -305,7 +283,7 @@ const googleAuth = asyncHandler(async (req, res) => {
                 lastName: family_name || '.',
                 email,
                 authMethod: 'google',
-                isEmailVerified: true,
+                isEmailVerified: true, 
                 organizations: [newOrganization._id],
                 currentOrganization: newOrganization._id,
             });
@@ -313,12 +291,11 @@ const googleAuth = asyncHandler(async (req, res) => {
             newOrganization.members.push({ userId: newUser._id, role: 'owner' });
             await newOrganization.save();
 
-            // FIX: Instead of logging in, trigger the MFA flow for the new user
-            await initiateMfaFlow(newUser);
+            // Log the new user in directly.
+            await sendTokenResponse(newUser, 201, res);
         }
     } catch (error) {
         console.error("Error during Google authentication:", error);
-        // ... (error handling remains the same)
         let message = 'An internal error occurred during Google authentication.';
         if (error.name === 'ValidationError') {
             message = 'A required field was missing from the Google profile.';
@@ -329,6 +306,7 @@ const googleAuth = asyncHandler(async (req, res) => {
         throw new Error(message);
     }
 });
+
 
 // @desc      Refresh access token
 // @route     POST /api/v1/auth/refresh-token
