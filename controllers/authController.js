@@ -9,8 +9,7 @@ const sendEmail = require('../utils/email/sendEmail');
 // Correctly initialize the Google OAuth2 Client with the Redirect URI
 const googleClient = new OAuth2Client(
     process.env.PRAXFORM_GOOGLE_CLIENT_ID,
-    process.env.PRAXFORM_GOOGLE_CLIENT_SECRET,
-    process.env.PRAXFORM_GOOGLE_REDIRECT_URI
+    process.env.PRAXFORM_GOOGLE_CLIENT_SECRET
 );
 
 // Helper function to generate a 6-digit numeric code
