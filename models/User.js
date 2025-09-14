@@ -28,7 +28,6 @@ const UserSchema = new mongoose.Schema({
     emailVerificationTokenExpires: Date,
     resetPasswordToken: String,
     resetPasswordExpires: Date,
-    // Fields for login with code
     loginCode: String,
     loginCodeExpires: Date,
     metadata: { type: Map, of: String }
