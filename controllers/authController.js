@@ -227,12 +227,6 @@ const verifyMfa = asyncHandler(async (req, res) => {
     await sendTokenResponse(user, 200, res);
 });
 
-
-// @desc      Authenticate with Google using Authorization Code Flow
-// @route     POST /api/v1/auth/google
-// @access    Public
-
-
 // @desc      Authenticate with Google
 // @route     POST /api/v1/auth/google
 // @access    Public
@@ -245,8 +239,6 @@ const googleAuth = asyncHandler(async (req, res) => {
     }
 
     try {
-        // Exchange authorization code for tokens. The redirect_uri is validated automatically
-        // by the googleClient instance based on how it was initialized.
         const { tokens } = await googleClient.getToken(code);
         const idToken = tokens.id_token;
 
@@ -281,7 +273,7 @@ const googleAuth = asyncHandler(async (req, res) => {
             
             const newUser = await User.create({
                 firstName: given_name,
-                lastName: family_name || ' ',
+                lastName: family_name || '.',
                 email,
                 authMethod: 'google',
                 isEmailVerified: true,
