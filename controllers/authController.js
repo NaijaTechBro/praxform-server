@@ -232,15 +232,20 @@ const verifyMfa = asyncHandler(async (req, res) => {
 // @route     POST /api/v1/auth/google
 // @access    Public
 const googleAuth = asyncHandler(async (req, res) => {
-    const { code } = req.body;
+    // Receive both the code and the redirectUri from the frontend
+    const { code, redirectUri } = req.body;
     if (!code) {
         res.status(400);
         throw new Error("Google authorization code is required");
     }
+    if (!redirectUri) {
+        res.status(400);
+        throw new Error("Redirect URI is required for Google authentication");
+    }
 
     try {
-        // Exchange authorization code for tokens
-        const { tokens } = await googleClient.getToken(code);
+        // Exchange authorization code for tokens, providing the dynamic redirectUri from the frontend
+        const { tokens } = await googleClient.getToken({ code, redirect_uri: redirectUri });
         const idToken = tokens.id_token;
 
         if (!idToken) {
@@ -257,21 +262,19 @@ const googleAuth = asyncHandler(async (req, res) => {
         let user = await User.findOne({ email });
 
         if (user) {
-            // User exists, log them in
             if (user.authMethod !== 'google') {
-                res.status(400);
-                throw new Error(`This email is registered with a different method. Please use ${user.authMethod} to log in.`);
+                res.status(400).json({ message: `This email is registered with a different method. Please use ${user.authMethod} to log in.`});
+                return;
             }
             await sendTokenResponse(user, 200, res);
         } else {
-            // User does not exist, create a new user and organization
             const organizationName = `${given_name}'s Organization`;
             const newOrganization = await Organization.create({
                 name: organizationName,
                 slug: organizationName.toLowerCase().replace(/\s+/g, '-'),
-                industry: "Other" // Default industry
+                industry: "Other"
             });
-
+            
             const newUser = await User.create({
                 firstName: given_name,
                 lastName: family_name || ' ',
@@ -281,22 +284,19 @@ const googleAuth = asyncHandler(async (req, res) => {
                 organizations: [newOrganization._id],
                 currentOrganization: newOrganization._id,
             });
-
+            
             newOrganization.members.push({ userId: newUser._id, role: 'owner' });
             await newOrganization.save();
 
             await sendTokenResponse(newUser, 201, res);
         }
-
-    }
-
-    catch (error) {
-        // This will log the detailed error from Google to your Render logs
+    } catch (error) {
         console.error("Error exchanging Google auth code for tokens:", error.response?.data || error.message);
         res.status(500);
         throw new Error("An internal error occurred during Google authentication.");
     }
 });
+
 
 
 // @desc      Refresh access token
