@@ -1,6 +1,7 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
@@ -21,6 +22,7 @@ connectDB();
 const app = express();
 
 app.use(express.json());
+app.use(cookieParser());
 app.use(cors());
 
 // Mount Routers

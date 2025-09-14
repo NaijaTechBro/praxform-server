@@ -15,10 +15,7 @@ const audit = (action, resourceType) => asyncHandler(async (req, res, next) => {
                 // In your errorHandler middleware, you can attach the error message to res.locals
                 failureReason = res.locals.errorMessage || 'An error occurred';
             }
-
-            // In a real implementation, the created resource ID might be on req.locals
-            // For example, after creating a form, the controller could set req.locals.resourceId = createdForm._id
-            if (res.locals.resourceId) {
+              if (res.locals.resourceId) {
                 resourceId = res.locals.resourceId;
             }
 

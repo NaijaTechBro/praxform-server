@@ -230,8 +230,10 @@ const verifyMfa = asyncHandler(async (req, res) => {
 // @desc      Authenticate with Google
 // @route     POST /api/v1/auth/google
 // @access    Public
+// @desc      Authenticate with Google
+// @route     POST /api/v1/auth/google
+// @access    Public
 const googleAuth = asyncHandler(async (req, res) => {
-    // We only need the authorization code from the frontend
     const { code } = req.body;
     if (!code) {
         res.status(400);
@@ -239,6 +241,7 @@ const googleAuth = asyncHandler(async (req, res) => {
     }
 
     try {
+        // Exchange authorization code for tokens
         const { tokens } = await googleClient.getToken(code);
         const idToken = tokens.id_token;
 
@@ -247,52 +250,74 @@ const googleAuth = asyncHandler(async (req, res) => {
             throw new Error("Failed to retrieve ID token from Google");
         }
         
+        // Verify the ID token to get user information
         const ticket = await googleClient.verifyIdToken({
             idToken,
             audience: process.env.PRAXFORM_GOOGLE_CLIENT_ID,
         });
 
-        const { name, email, given_name, family_name } = ticket.getPayload();
+        const { email, given_name, family_name } = ticket.getPayload();
         let user = await User.findOne({ email });
 
         if (user) {
-            // User exists, log them in
+            // --- USER ALREADY EXISTS ---
             if (user.authMethod !== 'google') {
                 res.status(400);
                 throw new Error(`This email is registered with a different method. Please use ${user.authMethod} to log in.`);
             }
+            // Log the existing user in
             await sendTokenResponse(user, 200, res);
         } else {
-            // User does not exist, create a new user and organization
+            // --- NEW USER SIGN-UP ---
             const organizationName = `${given_name}'s Organization`;
+
+            // 1. Create a clean base slug (remove apostrophes, replace spaces)
+            const baseSlug = organizationName.toLowerCase().replace(/'/g, '').replace(/\s+/g, '-');
+            // 2. Generate a short random suffix for uniqueness
+            const randomSuffix = crypto.randomBytes(4).toString('hex');
+            // 3. Combine for a guaranteed unique slug
+            const uniqueSlug = `${baseSlug}-${randomSuffix}`;
+            
             const newOrganization = await Organization.create({
                 name: organizationName,
-                slug: organizationName.toLowerCase().replace(/\s+/g, '-'),
+                slug: uniqueSlug,
                 industry: "Other"
             });
             
             const newUser = await User.create({
                 firstName: given_name,
+                // FIX: Use a period fallback for missing last names to pass validation
                 lastName: family_name || '.',
                 email,
                 authMethod: 'google',
-                isEmailVerified: true,
+                isEmailVerified: true, // Email is verified by Google
                 organizations: [newOrganization._id],
                 currentOrganization: newOrganization._id,
             });
             
+            // Link the new user as the owner of the new organization
             newOrganization.members.push({ userId: newUser._id, role: 'owner' });
             await newOrganization.save();
 
+            // Log the new user in
             await sendTokenResponse(newUser, 201, res);
         }
     } catch (error) {
-        console.error("Error exchanging Google auth code for tokens:", error.response?.data || error.message);
+        // Improved error logging and response
+        console.error("Error during Google authentication:", error);
+
+        let message = 'An internal error occurred during Google authentication.';
+        if (error.name === 'ValidationError') {
+            message = 'A required field was missing from the Google profile.';
+        } else if (error.code === 11000) {
+            // This should not happen with the unique slug, but is good for robustness
+            message = 'An error occurred while creating a unique resource.';
+        }
+
         res.status(500);
-        throw new Error("An internal error occurred during Google authentication.");
+        throw new Error(message);
     }
 });
-
 
 
 // @desc      Refresh access token
