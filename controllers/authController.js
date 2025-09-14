@@ -445,9 +445,15 @@ const forgotPassword = asyncHandler(async (req, res) => {
         throw new Error('User not found.');
     }
 
+      // Ensure user has a local password before sending a reset link
+    if (user.authMethod !== 'local') {
+        res.status(400);
+        throw new Error(`This account is managed by ${user.authMethod}. Password cannot be reset here.`);
+    }
+    
     const resetToken = crypto.randomBytes(20).toString('hex');
     user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
+    user.resetPasswordExpires = Date.now() + 3600000;
     await user.save();
 
     const resetUrl = `${process.env.PRAXFORM_FRONTEND_HOST}/reset-password/${resetToken}`;
@@ -455,6 +461,8 @@ const forgotPassword = asyncHandler(async (req, res) => {
         await sendEmail({
             subject: "Password Reset Request",
             send_to: user.email,
+            sent_from: `${process.env.PRAXFORM_FROM_NAME || 'PraxForm Team'} <${process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com'}>`,
+            reply_to: process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com',
             template: "reset-password",
             name: user.firstName,
             link: resetUrl
