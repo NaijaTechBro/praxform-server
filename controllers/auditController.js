@@ -8,7 +8,7 @@ const getAuditLogs = asyncHandler(async (req, res) => {
     const organizationId = req.user.currentOrganization;
     const logs = await AuditLog.find({ organization: organizationId })
         .populate('user', 'firstName lastName')
-        .sort({ timestamp: -1 }); // Sort by newest first
+        .sort({ timestamp: -1 });
 
     res.json(logs);
 });
