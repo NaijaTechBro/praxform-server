@@ -76,7 +76,7 @@ const sendTokenResponse = async (user, statusCode, res) => {
 const registerUser = asyncHandler(async (req, res) => {
     const { firstName, lastName, email, password, organization, role } = req.body;
 
-    if (!email || !password || !firstName || !lastName || !organization || !organization.name || !organization.industry) {
+    if (!email || !password || !firstName || !lastName || !organization || !organization.name || !organization.industry || !organization.address || !organization.phoneNumber || !organization.website ) {
         res.status(400);
         throw new Error('Please provide all required user (firstName, lastName, email, password) and organization (name, industry) fields.');
     }
@@ -102,7 +102,10 @@ const registerUser = asyncHandler(async (req, res) => {
     const newOrganization = await Organization.create({
         name: organization.name,
         slug: organization.name.toLowerCase().replace(/\s+/g, '-'),
-        industry: organization.industry
+        industry: organization.industry,
+        address: organization.address,
+        phoneNumber: organization.phoneNumber,
+        website: organization.website
     });
 
     const verificationCode = generateSixDigitCode();

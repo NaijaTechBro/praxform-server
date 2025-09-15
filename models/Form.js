@@ -40,7 +40,6 @@ const FormSchema = new mongoose.Schema({
     submissionCount: { type: Number, default: 0 },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     encryptionKey: { type: String, required: false },
-    // --- NEW & UPDATED FIELDS ---
     settings: {
         oneTimeUse: { type: Boolean, default: false },
         requireSmsAuth: { type: Boolean, default: false },
