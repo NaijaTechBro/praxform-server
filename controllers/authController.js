@@ -394,6 +394,9 @@ const getMe = asyncHandler(async (req, res) => {
             lastName: user.lastName,
             email: user.email,
             currentOrganization: user.currentOrganization,
+            phoneNumber: user.phoneNumber,
+            preferences: user.preferences,
+            mfaEnabled: user.mfaEnabled
         });
     } else {
         res.status(404);
