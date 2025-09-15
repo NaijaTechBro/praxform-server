@@ -76,7 +76,7 @@ const sendTokenResponse = async (user, statusCode, res) => {
 const registerUser = asyncHandler(async (req, res) => {
     const { firstName, lastName, email, password, organization, role } = req.body;
 
-    if (!email || !password || !firstName || !lastName || !organization || !organization.name || !organization.email || !organization.industry || !organization.address || !organization.phoneNumber || !organization.website ) {
+    if (!email || !password || !firstName || !lastName || !organization || !organization.name || !organization.industry || !organization.address || !organization.phoneNumber || !organization.website ) {
         res.status(400);
         throw new Error('Please provide all required user and organization fields, including address, phone, and website.');
       }
