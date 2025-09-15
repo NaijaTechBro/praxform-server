@@ -133,6 +133,7 @@ const registerUser = asyncHandler(async (req, res) => {
         firstName,
         lastName,
         email,
+        phoneNumber,
         passwordHash: password,
         organizations: [newOrganization._id],
         currentOrganization: newOrganization._id,

@@ -54,7 +54,6 @@ router.route('/:id')
 
 router.post('/:id/send', protect, audit('form.sent', 'form'), sendForm);
 
-// --- NEW ROUTE ---
 router.post('/:id/secure-link', protect, audit('form.link_generated', 'form'), generateSecureLink);
 
 router.get('/:id/submissions', protect, getSubmissionsByForm);
