@@ -74,9 +74,9 @@ const sendTokenResponse = async (user, statusCode, res) => {
 // @route     POST /api/v1/auth/register
 // @access    Public
 const registerUser = asyncHandler(async (req, res) => {
-    const { firstName, lastName, email, password, organization, phoneNumber, role } = req.body;
+    const { firstName, lastName, email, password, organization, role } = req.body;
 
-    if (!email || !password || !firstName || !lastName || !phoneNumber || !organization || !organization.name || !organization.industry || !organization.address || !organization.phoneNumber || !organization.website ) {
+    if (!email || !password || !firstName || !lastName || !organization || !organization.name || !organization.industry || !organization.address || !organization.phoneNumber || !organization.website ) {
         res.status(400);
         throw new Error('Please provide all required user and organization fields, including address, phone, and website.');
       }
@@ -123,7 +123,7 @@ const registerUser = asyncHandler(async (req, res) => {
         address: organization.address,
         phoneNumber: organization.phoneNumber,
         website: organization.website,
-        email: organization.email,
+        email: email,
     });
 
     const verificationCode = generateSixDigitCode();
@@ -133,7 +133,7 @@ const registerUser = asyncHandler(async (req, res) => {
         firstName,
         lastName,
         email,
-        phoneNumber,
+        phoneNumber: organization.phoneNumber,
         passwordHash: password,
         organizations: [newOrganization._id],
         currentOrganization: newOrganization._id,
