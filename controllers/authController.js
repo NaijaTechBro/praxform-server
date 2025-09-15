@@ -78,8 +78,8 @@ const registerUser = asyncHandler(async (req, res) => {
 
     if (!email || !password || !firstName || !lastName || !organization || !organization.name || !organization.industry || !organization.address || !organization.phoneNumber || !organization.website ) {
         res.status(400);
-        throw new Error('Please provide all required user (firstName, lastName, email, password) and organization (name, industry) fields.');
-    }
+        throw new Error('Please provide all required user and organization fields, including address, phone, and website.');
+      }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -99,13 +99,31 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new Error('User with this email already exists.');
     }
 
+    // --- ROBUST & UNIQUE SLUG GENERATION ---
+    const generateUniqueSlug = async (name) => {
+        const baseSlug = name.toLowerCase()
+                             .replace(/\s+/g, '-') // Replace spaces with -
+                             .replace(/[^\w\-]+/g, ''); // Remove all non-word chars except -
+        let slug = baseSlug;
+        let counter = 1;
+        // Append number if slug already exists
+        while (await Organization.findOne({ slug })) {
+            slug = `${baseSlug}-${counter}`;
+            counter++;
+        }
+        return slug;
+    };
+
+    const uniqueSlug = await generateUniqueSlug(organization.name);
+    
     const newOrganization = await Organization.create({
         name: organization.name,
-        slug: organization.name.toLowerCase().replace(/\s+/g, '-'),
+        slug: uniqueSlug,
         industry: organization.industry,
         address: organization.address,
         phoneNumber: organization.phoneNumber,
-        website: organization.website
+        website: organization.website,
+        email: email,
     });
 
     const verificationCode = generateSixDigitCode();
