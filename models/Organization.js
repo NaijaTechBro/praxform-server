@@ -15,6 +15,7 @@ const OrganizationSchema = new mongoose.Schema({
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         role: { type: String, enum: ['owner', 'admin', 'manager', 'viewer'], default: 'viewer' }
     }],
+    callbackUrl: { type: String, trim: true },
     apiKeys: [{
         name: String,
         key: String, // Hashed
