@@ -167,8 +167,7 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 });
 
-
-// @desc      Authenticate user & get token (MFA Step 1 - Now Mandatory)
+// @desc      Authenticate user & get token
 // @route     POST /api/v1/auth/login
 // @access    Public
 const loginUser = asyncHandler(async (req, res) => {
@@ -190,33 +189,44 @@ const loginUser = asyncHandler(async (req, res) => {
         throw new Error('Please verify your email address before logging in.');
     }
 
-    // MFA is now mandatory for all local logins.
-    const code = generateSixDigitCode();
-    user.loginCode = crypto.createHash('sha256').update(code).digest('hex');
-    user.loginCodeExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-    await user.save();
+    // Check if MFA is actually enabled for this user
+    if (user.mfaEnabled) {
+        // --- MFA-ENABLED FLOW ---
+        const code = generateSixDigitCode();
+        user.loginCode = crypto.createHash('sha256').update(code).digest('hex');
+        user.loginCodeExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+        await user.save();
 
-    try {
-        await sendEmail({
-            subject: "Your PraxForm Login Code",
-            send_to: user.email,
-            sent_from: `${process.env.PRAXFORM_FROM_NAME || 'PraxForm Team'} <${process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com'}>`,
-            reply_to: process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com',
-            template: "login-code",
-            name: user.firstName,
-            code: code
-        });
-        res.status(200).json({
-            success: true,
-            mfaRequired: true,
-            message: 'Please check your email for a login code.'
-        });
-    } catch (emailError) {
-        console.error('Error sending MFA email:', emailError);
-        res.status(500);
-        throw new Error('Could not send login code. Please try again later.');
+        try {
+            await sendEmail({
+                subject: "Your PraxForm Login Code",
+                send_to: user.email,
+                sent_from: `${process.env.PRAXFORM_FROM_NAME || 'PraxForm Team'} <${process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com'}>`,
+                reply_to: process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com',
+                template: "login-code",
+                name: user.firstName,
+                code: code
+            });
+            res.status(200).json({
+                success: true,
+                mfaRequired: true,
+                message: 'MFA is enabled. Please check your email for a login code.'
+            });
+        } catch (emailError) {
+            console.error('Error sending MFA email:', emailError);
+            res.status(500);
+            throw new Error('Could not send login code. Please try again later.');
+        }
+    } else {
+        // Update the last login timestamp
+        user.lastLogin = new Date();
+        await user.save();
+        
+        // Send access tokens and log the user in directly
+        await sendTokenResponse(user, 200, res);
     }
 });
+
 
 // @desc      Verify MFA code and complete login (MFA Step 2)
 // @route     POST /api/v1/auth/verify-mfa
@@ -244,10 +254,12 @@ const verifyMfa = asyncHandler(async (req, res) => {
 
     user.loginCode = undefined;
     user.loginCodeExpires = undefined;
+    user.lastLogin = new Date();
     await user.save();
 
     await sendTokenResponse(user, 200, res);
 });
+
 
 
 // @desc      Authenticate with Google
