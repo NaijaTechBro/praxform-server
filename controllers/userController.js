@@ -71,6 +71,41 @@ const updateUser = asyncHandler(async (req, res) => {
     }
 });
 
+
+// @desc    Enable or disable MFA for a user
+// @route   PUT /api/v1/users/:id/mfa-toggle
+// @access  Private
+const toggleMfaStatus = asyncHandler(async (req, res) => {
+    const { mfaEnabled, password } = req.body;
+
+    if (req.user._id.toString() !== req.params.id) {
+        res.status(401);
+        throw new Error('Not authorized to update this user');
+    }
+    
+    const user = await User.findById(req.user._id);
+
+    if (!password || !(await user.matchPassword(password))) {
+        res.status(401);
+        throw new Error('Incorrect password.');
+    }
+
+    if (typeof mfaEnabled !== 'boolean') {
+        res.status(400);
+        throw new Error('Invalid value for mfaEnabled.');
+    }
+
+    user.mfaEnabled = mfaEnabled;
+    await user.save();
+
+    res.status(200).json({
+        success: true,
+        message: `Two-Factor Authentication has been ${mfaEnabled ? 'enabled' : 'disabled'}.`,
+        mfaEnabled: user.mfaEnabled
+    });
+});
+
+
 // @desc    Delete user
 // @route   DELETE /api/v1/users/:id
 // @access  Private/Admin
@@ -88,4 +123,4 @@ const deleteUser = asyncHandler(async (req, res) => {
 });
 
 
-module.exports = { getUsers, getUserById, updateUser, deleteUser };
+module.exports = { getUsers, getUserById, updateUser, toggleMfaStatus, deleteUser };
