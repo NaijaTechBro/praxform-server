@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Organization = require('../models/Organization');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const createNotification = require('../utils/createNotification');
 const sendEmail = require('../utils/email/sendEmail');
 
 // Correctly initialize the Google OAuth2 Client with the Redirect URI
@@ -557,6 +558,10 @@ const changePassword = asyncHandler(async (req, res) => {
     user.passwordHash = newPassword;
     await user.save();
 
+    // --- NOTIFICATION LOGIC ---
+    const message = "Your account password was successfully changed.";
+    await createNotification(user._id, user.currentOrganization, 'password_changed', message, '/settings/security');
+    // --- END NOTIFICATION LOGIC ---
     res.status(200).json({ success: true, message: 'Password changed successfully.' });
 });
 

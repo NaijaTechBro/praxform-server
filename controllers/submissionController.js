@@ -1,6 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const Submission = require('../models/Submission');
 const Form = require('../models/Form');
+const createNotification = require('../utils/createNotification');
 const Webhook = require('../models/Webhook');
 const axios = require('axios');
 const crypto = require('crypto');
@@ -36,6 +37,13 @@ const createSubmission = asyncHandler(async (req, res) => {
 
     const createdSubmission = await submission.save();
 
+    // ---- NOTIFICATION LOGIC ----
+        if (form.createdBy) {
+        const message = `You have a new submission for the form: "${form.name}".`;
+        const link = `/forms/${form._id}/submissions/${createdSubmission._id}`;
+        await createNotification(form.createdBy, form.organization, 'form_submission', message, link);
+    }
+    
     form.submissionCount += 1;
     recipient.status = 'completed';
     await form.save();
