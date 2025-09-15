@@ -5,6 +5,7 @@ const Organization = require('../models/Organization');
 // @route   GET /api/v1/organizations/:id
 // @access  Private
 const getOrganizationById = asyncHandler(async (req, res) => {
+    // Populate member details for potential display of the team
     const organization = await Organization.findById(req.params.id).populate('members.userId', 'firstName lastName email');
 
     if (!organization) {
@@ -17,7 +18,7 @@ const getOrganizationById = asyncHandler(async (req, res) => {
 
     if (!isMember) {
         res.status(403);
-        throw new Error('User is not a member of this organization');
+        throw new Error('User is not authorized to view this organization');
     }
 
     res.json(organization);
@@ -34,26 +35,31 @@ const updateOrganization = asyncHandler(async (req, res) => {
         throw new Error('Organization not found');
     }
 
-    // Check if user is an owner or admin of the organization
     const member = organization.members.find(member => member.userId.equals(req.user._id));
-    if (!member || (member.role !== 'owner' && member.role !== 'admin')) {
+    if (!member || !['owner', 'admin'].includes(member.role)) {
         res.status(403);
         throw new Error('User does not have permission to update this organization');
     }
 
-    organization.name = req.body.name || organization.name;
-    organization.description = req.body.description || organization.description;
-    organization.industry = req.body.industry || organization.industry;
-    organization.website = req.body.website || organization.website;
-    organization.phone = req.body.phone || organization.phone;
-    organization.email = req.body.email || organization.email;
+    // Pull the data from the request body
+    const { name, description, industry, website, phoneNumber, email, address } = req.body;
+
+    // Update the fields if they were provided in the request
+    organization.name = name || organization.name;
+    organization.description = description || organization.description;
+    organization.industry = industry || organization.industry;
+    organization.website = website || organization.website;
+    organization.phoneNumber = phoneNumber || organization.phoneNumber;
+    organization.email = email || organization.email;
     
-    if (req.body.address) {
-        organization.address = { ...organization.address, ...req.body.address };
+    if (address) {
+        // This merges the new address data with any existing address data
+        organization.address = { ...organization.address, ...address };
     }
 
     const updatedOrganization = await organization.save();
-    res.json(updatedOrganization);
+    
+    res.status(200).json(updatedOrganization);
 });
 
 
