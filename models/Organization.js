@@ -1,3 +1,5 @@
+// models/Organization.js
+
 const mongoose = require('mongoose');
 
 const OrganizationSchema = new mongoose.Schema({
@@ -10,7 +12,14 @@ const OrganizationSchema = new mongoose.Schema({
     address: { street: String, city: String, state: String, zip: String, country: String },
     phoneNumber: { type: Number, trim: true },
     email: { type: String, trim: true, lowercase: true },
-    isVerified: { type: Boolean, default: false },
+    
+    verificationStatus: {
+        type: String,
+        enum: ['pending', 'verified', 'rejected', 'conflict', 'unverified'],
+        default: 'unverified',
+        required: true
+    },
+
     members: [{
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         role: { type: String, enum: ['owner', 'admin', 'manager', 'viewer'], default: 'viewer' }
@@ -18,7 +27,7 @@ const OrganizationSchema = new mongoose.Schema({
     callbackUrl: { type: String, trim: true },
     apiKeys: [{
         name: String,
-        key: String, // Hashed
+        key: String, 
         permissions: [String],
         lastUsed: Date,
         createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
