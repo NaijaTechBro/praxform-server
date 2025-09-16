@@ -134,7 +134,6 @@ const registerUser = asyncHandler(async (req, res) => {
         firstName,
         lastName,
         email,
-        phoneNumber: organization.phoneNumber,
         passwordHash: password,
         organizations: [newOrganization._id],
         currentOrganization: newOrganization._id,
@@ -407,7 +406,6 @@ const getMe = asyncHandler(async (req, res) => {
             lastName: user.lastName,
             email: user.email,
             currentOrganization: user.currentOrganization,
-            phoneNumber: user.phoneNumber,
             preferences: user.preferences,
             mfaEnabled: user.mfaEnabled
         });

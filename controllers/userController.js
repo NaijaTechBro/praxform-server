@@ -39,7 +39,6 @@ const updateUser = asyncHandler(async (req, res) => {
 
         user.firstName = req.body.firstName || user.firstName;
         user.lastName = req.body.lastName || user.lastName;
-        user.phoneNumber = req.body.phoneNumber || user.phoneNumber;
         
          // Handle boolean for MFA toggle
         if (typeof req.body.mfaEnabled === 'boolean') {
@@ -59,7 +58,6 @@ const updateUser = asyncHandler(async (req, res) => {
             firstName: finalUpdatedUser.firstName,
             lastName: finalUpdatedUser.lastName,
             email: finalUpdatedUser.email,
-            phoneNumber: finalUpdatedUser.phoneNumber,
             currentOrganization: finalUpdatedUser.currentOrganization,
             preferences: finalUpdatedUser.preferences,
             mfaEnabled: finalUpdatedUser.mfaEnabled

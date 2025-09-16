@@ -7,7 +7,6 @@ const UserSchema = new mongoose.Schema({
     authMethod: { type: String, enum: ['local', 'google', 'microsoft', 'magic-link'], default: 'local' },
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },
-    phoneNumber: { type: Number, trim: true },
     isEmailVerified: { type: Boolean, default: false },
     isPhoneVerified: { type: Boolean, default: false },
     mfaEnabled: { type: Boolean, default: false },
