@@ -543,6 +543,31 @@ const resetPassword = asyncHandler(async (req, res) => {
     await sendTokenResponse(user, 200, res);
 });
 
+// // @desc      Change password for a logged-in user
+// // @route     PUT /api/v1/auth/change-password
+// // @access    Private
+// const changePassword = asyncHandler(async (req, res) => {
+//     const { oldPassword, newPassword } = req.body;
+//     const user = await User.findById(req.user._id);
+
+//     if (!user || !(await user.matchPassword(oldPassword))) {
+//         res.status(401);
+//         throw new Error('Incorrect old password.');
+//     }
+
+//     user.passwordHash = newPassword;
+//     await user.save();
+
+//     const message = "Your account password was successfully changed.";
+//     await createNotification(user._id, user.currentOrganization, 'password_changed', message, '/settings/security');
+
+//     res.status(200).json({ success: true, message: 'Password changed successfully.' });
+// });
+
+
+
+
+
 // @desc      Change password for a logged-in user
 // @route     PUT /api/v1/auth/change-password
 // @access    Private
@@ -554,16 +579,38 @@ const changePassword = asyncHandler(async (req, res) => {
         res.status(401);
         throw new Error('Incorrect old password.');
     }
+    
+    // Add validation for the new password
+    const passwordRulesRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
+    if (!passwordRulesRegex.test(newPassword)) {
+        res.status(400);
+        throw new Error('New password must be at least 8 characters long, contain at least one number and one special character.');
+    }
 
     user.passwordHash = newPassword;
     await user.save();
 
-    // --- NOTIFICATION LOGIC ---
     const message = "Your account password was successfully changed.";
     await createNotification(user._id, user.currentOrganization, 'password_changed', message, '/settings/security');
-    // --- END NOTIFICATION LOGIC ---
+
+    // Send an email notification to the user
+    try {
+        await sendEmail({
+            subject: "Your PraxForm Password Has Been Changed",
+            send_to: user.email,
+            sent_from: `${process.env.PRAXFORM_FROM_NAME || 'PraxForm Team'} <${process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com'}>`,
+            reply_to: process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com',
+            template: "changePassword",
+            name: user.firstName,
+        });
+    } catch (emailError) {
+        console.error('Error sending password change notification email:', emailError);
+    }
+    
     res.status(200).json({ success: true, message: 'Password changed successfully.' });
 });
+
+
 
 module.exports = {
     registerUser,
