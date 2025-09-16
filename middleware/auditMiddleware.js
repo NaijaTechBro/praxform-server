@@ -2,17 +2,21 @@ const AuditLog = require('../models/AuditLog');
 const asyncHandler = require('express-async-handler');
 
 const audit = (action, resourceType) => asyncHandler(async (req, res, next) => {
-    // Let the actual route handler run first
     next();
 
     res.on('finish', async () => {
         try {
+            const details = {
+                body: req.body,
+                params: req.params,
+                query: req.query,
+                ...(res.locals.auditDetails || {}) // Merge details from the controller
+            };
             let resourceId = req.params.id || (req.body && req.body.formId);
             let failureReason = null;
             
             // If the response status code indicates an error, capture the reason
             if (res.statusCode >= 400) {
-                // In your errorHandler middleware, you can attach the error message to res.locals
                 failureReason = res.locals.errorMessage || 'An error occurred';
             }
               if (res.locals.resourceId) {
@@ -29,11 +33,7 @@ const audit = (action, resourceType) => asyncHandler(async (req, res, next) => {
                 userAgent: req.get('user-agent'),
                 success: res.statusCode < 400,
                 failureReason,
-                details: {
-                    body: req.body,
-                    params: req.params,
-                    query: req.query
-                },
+                details
             });
 
             await log.save();
