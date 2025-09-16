@@ -165,13 +165,22 @@ const updateForm = asyncHandler(async (req, res) => {
     }
 });
 
+
+
+
+
 const deleteForm = asyncHandler(async (req, res, next) => {
     const form = await Form.findById(req.params.id);
+
     if (form && form.organization.toString() === req.user.currentOrganization.toString()) {
         res.locals.auditDetails = { 
             formId: form._id,
-            formName: form.name };
+            formName: req.body.formName || form.name 
+        };
+
+        // Now, perform the deletion.
         await Form.deleteOne({ _id: req.params.id });
+
         res.json({ message: 'Form removed' });
     } else {
         res.status(404);
