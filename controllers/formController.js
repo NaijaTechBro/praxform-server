@@ -193,6 +193,7 @@ const updateForm = asyncHandler(async (req, res) => {
         throw new Error('Form not found or not part of the current organization');
     }
 });
+
 // in controllers/formController.js
 
 const deleteForm = asyncHandler(async (req, res, next) => {
@@ -206,17 +207,15 @@ const deleteForm = asyncHandler(async (req, res, next) => {
             formName: req.body.formName || form.name 
         };
 
-        // STEP 1: Comment these lines out for now
-        // await triggerWebhook('form.deleted', { formId: form._id, formName: form.name }, form.organization);
+        // --- TEST 1: UNCOMMENT THE WEBHOOK ONLY ---
+        await triggerWebhook('form.deleted', { formId: form._id, formName: form.name }, form.organization);
         
+        // --- Keep the notification commented out ---
         // const message = `The form "${form.name}" has been deleted.`;
         // if (form.createdBy) {
         //     await createNotification(form.createdBy, form.organization, 'form_deleted', message, null);
         // }
 
-        console.log('Webhook and Notification skipped. Attempting deletion...');
-        
-        // Let's see if the crash happens here
         await form.deleteOne();
 
         res.json({ message: 'Form removed' });
@@ -225,4 +224,5 @@ const deleteForm = asyncHandler(async (req, res, next) => {
         throw new Error('Form not found or not part of the current organization');
     }
 });
+
 module.exports = { createForm, getForms, getFormById, updateForm, deleteForm, sendForm, generateSecureLink };
