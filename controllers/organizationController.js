@@ -100,7 +100,8 @@ const generateApiKeys = asyncHandler(async (req, res) => {
         createdBy: req.user._id,
         lastUsed: new Date()
     }];
-    
+    organization.markModified('apiKeys');
+
     await organization.save();
 
     res.status(200).json({
@@ -116,26 +117,5 @@ module.exports = {
     updateOrganization, 
     generateApiKeys
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
