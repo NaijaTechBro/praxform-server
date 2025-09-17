@@ -3,6 +3,25 @@ const Form = require('../models/Form');
 const Organization = require('../models/Organization');
 const crypto = require('crypto');
 const sendEmail = require('../utils/email/sendEmail');
+const triggerWebhook = require('../utils/triggerWebhook');
+
+// @desc    Create a new form
+// @route   POST /api/v1/forms
+// @access  Private
+
+
+
+
+
+
+// controllers/formController.js
+
+const asyncHandler = require('express-async-handler');
+const Form = require('../models/Form');
+// ... other imports
+
+// NEW: Import the webhook trigger utility
+const triggerWebhook = require('../utils/triggerWebhook'); // Adjust path as needed
 
 // @desc    Create a new form
 // @route   POST /api/v1/forms
@@ -22,7 +41,7 @@ const createForm = asyncHandler(async (req, res) => {
         organization: organizationId,
         template,
         fields,
-        settings, // Initial settings can be passed on creation
+        settings,
         layout,
         createdBy: req.user._id,
         status: 'draft',
@@ -30,9 +49,12 @@ const createForm = asyncHandler(async (req, res) => {
     });
 
     const createdForm = await form.save();
+
+    triggerWebhook('form.created', createdForm, organizationId);
+    
     res.status(201).json(createdForm);
 });
-
+ 
 
 // @desc    Send a form to recipients with options
 // @route   POST /api/v1/forms/:id/send
