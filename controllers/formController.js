@@ -167,25 +167,31 @@ const getFormById = asyncHandler(async (req, res) => {
 // @desc    Update a form
 // @route   PUT /api/v1/forms/:id
 // @access  Private
-const updateForm = asyncHandler(async (req, res) => {
 
-  const form = await Form.findById(req.params.id);
-    if (form && form.organization.toString() === req.user.currentOrganization.toString()) {
+const updateForm = asyncHandler(async (req, res) => {
+    
+    const form = await Form.findById(req.params.id)
+        .populate('organization')
+        .populate('createdBy', 'firstName lastName');
+
+    if (form && form.organization._id.toString() === req.user.currentOrganization.toString()) {
         form.name = req.body.name || form.name;
         form.description = req.body.description || form.description;
         form.fields = req.body.fields || form.fields;
         form.status = req.body.status || form.status;
         form.settings = req.body.settings || form.settings;
         form.layout = req.body.layout || form.layout;
+
         const updatedForm = await form.save();
 
-        // Added: Trigger webhook for form update
+        // This function receives the populated organization object, which is fine.
         await triggerWebhook('form.updated', updatedForm, form.organization);
 
-        // Added: Notify the form creator that their form was updated
         const message = `The form "${updatedForm.name}" has been updated.`;
         const link = `/forms/${updatedForm._id}`;
-        await createNotification(form.createdBy, form.organization, 'form_update', message, link);
+        if (form.createdBy) {
+            await createNotification(form.createdBy._id, form.organization._id, 'form_update', message, link);
+        }
 
         res.json(updatedForm);
     } else {
@@ -197,8 +203,6 @@ const updateForm = asyncHandler(async (req, res) => {
 // @desc    Delete a form
 // @route   DELETE /api/v1/forms/:id
 // @access  Private
-
-// in controllers/formController.js
 
 const deleteForm = asyncHandler(async (req, res, next) => {
     const form = await Form.findById(req.params.id)
