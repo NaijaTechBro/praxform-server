@@ -198,14 +198,11 @@ const updateForm = asyncHandler(async (req, res) => {
 // @route   DELETE /api/v1/forms/:id
 // @access  Private
 
-// @desc      Delete a form
-// @route     DELETE /api/v1/forms/:id
-// @access    Private
 const deleteForm = asyncHandler(async (req, res, next) => {
-    // FIX 1: Populate 'organization' and 'createdBy' fields
+    // We are keeping the populate fix as it's still best practice
     const form = await Form.findById(req.params.id)
         .populate('organization')
-        .populate('createdBy', 'firstName lastName'); // Only select the fields you need
+        .populate('createdBy', 'firstName lastName'); 
 
     if (form && form.organization._id.toString() === req.user.currentOrganization.toString()) {
         res.locals.auditDetails = { 
@@ -213,13 +210,18 @@ const deleteForm = asyncHandler(async (req, res, next) => {
             formName: req.body.formName || form.name 
         };
 
-        // These functions will now receive the full objects they need
         await triggerWebhook('form.deleted', { formId: form._id, formName: form.name }, form.organization);
         
         const message = `The form "${form.name}" has been deleted.`;
-        await createNotification(form.createdBy, form.organization, 'form_deleted', message, null);
 
-        // FIX 2: Use the instance method for deletion for consistency and to trigger hooks
+        // =================================================================
+        // THE FIX: Only create a notification if the creator user still exists
+        // =================================================================
+        if (form.createdBy) {
+            await createNotification(form.createdBy, form.organization, 'form_deleted', message, null);
+        }
+        // =================================================================
+
         await form.deleteOne();
 
         res.json({ message: 'Form removed' });
@@ -228,5 +230,4 @@ const deleteForm = asyncHandler(async (req, res, next) => {
         throw new Error('Form not found or not part of the current organization');
     }
 });
-
 module.exports = { createForm, getForms, getFormById, updateForm, deleteForm, sendForm, generateSecureLink };
