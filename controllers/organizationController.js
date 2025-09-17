@@ -51,9 +51,22 @@ const updateOrganization = asyncHandler(async (req, res) => {
     }
 
     const updatedOrganization = await organization.save();
+
+    // Added: Trigger webhook for organization update
+    await triggerWebhook('organization.updated', updatedOrganization, organization._id);
+
+    // Added: Notify all admins and owners about the update
+    const message = `The organization details for "${updatedOrganization.name}" were updated by ${req.user.firstName}.`;
+    const adminsAndOwners = organization.members.filter(m => ['owner', 'admin'].includes(m.role));
+    for (const admin of adminsAndOwners) {
+        // Avoid notifying the user who made the change
+        if (admin.userId.toString() !== req.user._id.toString()) {
+            await createNotification(admin.userId, organization._id, 'organization_update', message, '/settings/organization');
+        }
+    }
+    
     res.status(200).json(updatedOrganization);
 });
-
 
 
 // @desc    Generate new API Keys for an organization
@@ -103,6 +116,18 @@ const generateApiKeys = asyncHandler(async (req, res) => {
     organization.markModified('apiKeys');
 
     await organization.save();
+
+    // Added: Trigger webhook for this security-sensitive event
+    await triggerWebhook('organization.api_keys_regenerated', { organizationId: organization._id, generatedBy: req.user._id }, organization._id);
+
+    // Added: Notify all admins and owners that new keys were generated
+    const message = `New API keys were generated for "${organization.name}" by ${req.user.firstName}. Previous keys are now invalid.`;
+    const link = '/settings/developer';
+    const adminsAndOwners = organization.members.filter(m => ['owner', 'admin'].includes(m.role));
+    for (const admin of adminsAndOwners) {
+        await createNotification(admin.userId, organization._id, 'api_keys_generated', message, link);
+    }
+    
 
     res.status(200).json({
         message: "New keys generated successfully. Please save your secret key securely.",

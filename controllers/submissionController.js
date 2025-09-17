@@ -2,6 +2,7 @@ const asyncHandler = require('express-async-handler');
 const Submission = require('../models/Submission');
 const Form = require('../models/Form');
 const createNotification = require('../utils/createNotification');
+const triggerWebhook = require('../utils/triggerWebhook');
 const Webhook = require('../models/Webhook');
 const axios = require('axios');
 const crypto = require('crypto');
@@ -48,14 +49,8 @@ const createSubmission = asyncHandler(async (req, res) => {
     recipient.status = 'completed';
     await form.save();
 
-    // ---- WEBHOOK TRIGGER LOGIC ----
-    const webhooks = await Webhook.find({
-        organization: form.organization,
-        status: 'active',
-        events: 'submission.created'
-    });
 
-    const payload = {
+    const webhookPayload = {
         event: 'submission.created',
         formId: form._id,
         submissionId: createdSubmission._id,
@@ -63,25 +58,11 @@ const createSubmission = asyncHandler(async (req, res) => {
         data: createdSubmission
     };
 
-    for (const webhook of webhooks) {
-        try {
-            const hmac = crypto.createHmac('sha256', webhook.secret);
-            hmac.update(JSON.stringify(payload));
-            const signature = hmac.digest('hex');
-
-            await axios.post(webhook.endpoint, payload, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Webhook-Signature': signature,
-                }
-            });
-            console.log(`Webhook sent to ${webhook.endpoint}`);
-        } catch (error) {
-            console.error(`Failed to send webhook to ${webhook.endpoint}: ${error.message}`);
-        }
-    }
+    // Added: Call the centralized triggerWebhook utility.
+    await triggerWebhook('submission.created', webhookPayload, form.organization);
 
     res.status(201).json(createdSubmission);
+
 });
 
 // @desc    Get a form by ID and access code (public)

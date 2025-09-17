@@ -153,8 +153,13 @@ const getFormById = asyncHandler(async (req, res) => {
     }
 });
 
+
+// @desc    Update a form
+// @route   PUT /api/v1/forms/:id
+// @access  Private
 const updateForm = asyncHandler(async (req, res) => {
-    const form = await Form.findById(req.params.id);
+
+  const form = await Form.findById(req.params.id);
     if (form && form.organization.toString() === req.user.currentOrganization.toString()) {
         form.name = req.body.name || form.name;
         form.description = req.body.description || form.description;
@@ -163,6 +168,15 @@ const updateForm = asyncHandler(async (req, res) => {
         form.settings = req.body.settings || form.settings;
         form.layout = req.body.layout || form.layout;
         const updatedForm = await form.save();
+
+        // Added: Trigger webhook for form update
+        await triggerWebhook('form.updated', updatedForm, form.organization);
+
+        // Added: Notify the form creator that their form was updated
+        const message = `The form "${updatedForm.name}" has been updated.`;
+        const link = `/forms/${updatedForm._id}`;
+        await createNotification(form.createdBy, form.organization, 'form_update', message, link);
+
         res.json(updatedForm);
     } else {
         res.status(404);
@@ -170,10 +184,9 @@ const updateForm = asyncHandler(async (req, res) => {
     }
 });
 
-
-
-
-
+// @desc    Delete a form
+// @route   DELETE /api/v1/forms/:id
+// @access  Private
 const deleteForm = asyncHandler(async (req, res, next) => {
     const form = await Form.findById(req.params.id);
 
@@ -182,6 +195,12 @@ const deleteForm = asyncHandler(async (req, res, next) => {
             formId: form._id,
             formName: req.body.formName || form.name 
         };
+
+        // Added: Trigger webhook and notification BEFORE deleting the record
+        await triggerWebhook('form.deleted', { formId: form._id, formName: form.name }, form.organization);
+        
+        const message = `The form "${form.name}" has been deleted.`;
+        await createNotification(form.createdBy, form.organization, 'form_deleted', message, null); // No link as form is gone
 
         // Now, perform the deletion.
         await Form.deleteOne({ _id: req.params.id });
@@ -192,5 +211,25 @@ const deleteForm = asyncHandler(async (req, res, next) => {
         throw new Error('Form not found or not part of the current organization');
     }
 });
+
+
+// const deleteForm = asyncHandler(async (req, res, next) => {
+//     const form = await Form.findById(req.params.id);
+
+//     if (form && form.organization.toString() === req.user.currentOrganization.toString()) {
+//         res.locals.auditDetails = { 
+//             formId: form._id,
+//             formName: req.body.formName || form.name 
+//         };
+
+//         // Now, perform the deletion.
+//         await Form.deleteOne({ _id: req.params.id });
+
+//         res.json({ message: 'Form removed' });
+//     } else {
+//         res.status(404);
+//         throw new Error('Form not found or not part of the current organization');
+//     }
+// });
 
 module.exports = { createForm, getForms, getFormById, updateForm, deleteForm, sendForm, generateSecureLink };
