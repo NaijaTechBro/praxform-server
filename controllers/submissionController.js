@@ -10,7 +10,12 @@ const triggerWebhook = require('../utils/triggerWebhook');
 const createSubmission = asyncHandler(async (req, res) => {
     const { formId, accessCode, data, encryptedData, files } = req.body;
 
-    const form = await Form.findById(formId);
+    const form = await Form.findById(formId).populate('organization');
+
+    if (!form) {
+        res.status(404);
+        throw new Error('Form not found');
+    }
 
        // Added: Plan limit enforcement
     const organization = form.organization;
@@ -20,7 +25,6 @@ const createSubmission = asyncHandler(async (req, res) => {
     if (maxSubmissions !== -1) {
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
         const monthlyCount = await Submission.countDocuments({
             organization: organization._id,
@@ -28,10 +32,8 @@ const createSubmission = asyncHandler(async (req, res) => {
         });
 
         if (monthlyCount >= maxSubmissions) {
-            // Important: For a public endpoint, you might not want to reveal plan limits.
-            // Log the error for the organization owner and return a generic error to the submitter.
-            console.error(`Submission blocked for org ${organization._id}: Monthly limit of ${maxSubmissions} reached.`);
-            res.status(429); // 429 Too Many Requests
+          console.error(`Submission blocked for org ${organization._id}: Monthly limit of ${maxSubmissions} reached.`);
+            res.status(429);
             throw new Error('This form is currently not accepting new submissions.');
         }
     }
@@ -43,9 +45,9 @@ const createSubmission = asyncHandler(async (req, res) => {
     }
 
     const recipient = form.recipients.find(r => r.uniqueAccessCode === accessCode);
-    if (!recipient) {
+    if (!recipient && (!form.publicLink || !form.publicLink.enabled || form.publicLink.uniqueAccessCode !== accessCode)) {
         res.status(403);
-        throw new Error('Invalid access code');
+        throw new Error('Invalid or expired access code');
     }
 
     const submission = new Submission({
