@@ -14,7 +14,8 @@ const submissionRoutes = require('./routes/submissionRoutes');
 const webhookRoutes = require('./routes/webhookRoutes');
 const auditRoutes = require('./routes/auditRoutes');
 const formtemplateRoutes = require('./routes/formtemplateRoutes');
-const notificationRoutes = require('./routes/notificationRoutes')
+const notificationRoutes = require('./routes/notificationRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 dotenv.config();
 
 connectDB();
@@ -34,7 +35,8 @@ app.use('/api/v1/submissions', submissionRoutes);
 app.use('/api/v1/webhooks', webhookRoutes);
 app.use('/api/v1/audit-logs', auditRoutes);
 app.use('/api/v1/form-templates', formtemplateRoutes);
-app.use('/api/v1/notifications', notificationRoutes)
+app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/payments', paymentRoutes);
 
 // Middleware
 app.use(notFound);

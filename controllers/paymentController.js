@@ -4,11 +4,11 @@ const createNotification = require('../utils/createNotification');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 // --- PLAN DEFINITIONS ---
-// Use the Price IDs from your Stripe dashboard
+// Price IDs from your Stripe dashboard
 const PLANS = {
     starter: {
         name: 'Starter',
-        priceId: 'price_starter_plan_id', // e.g., price_1P0...
+        priceId: 'price_starter_plan_id',
         price: 0,
         frequency: '/year',
         limits: {
@@ -21,7 +21,7 @@ const PLANS = {
             '1 team member',
             '50 submissions per month',
             '5 forms',
-            'No template creation',
+            '3 Custom templates creation',
         ],
     },
     pro: {
