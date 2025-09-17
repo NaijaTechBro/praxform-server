@@ -4,6 +4,7 @@ const Organization = require('../models/Organization');
 const crypto = require('crypto');
 const sendEmail = require('../utils/email/sendEmail');
 const triggerWebhook = require('../utils/triggerWebhook');
+const createNotification = require('../utils/createNotification');
 
 
 // @desc    Create a new form
@@ -141,8 +142,9 @@ const generateSecureLink = asyncHandler(async (req, res) => {
     }
 });
 
-
-/* --- OTHER CONTROLLERS (UNCHANGED) --- */
+// @desc      Get all forms for the current organization
+// @route     GET /api/v1/forms
+// @access    Private
 const getForms = asyncHandler(async (req, res) => {
     const organizationId = req.user.currentOrganization;
     const forms = await Form.find({ organization: organizationId }).populate('createdBy', 'firstName lastName');
@@ -164,12 +166,10 @@ const getFormById = asyncHandler(async (req, res) => {
 });
 
 
-// @desc    Update a form
-// @route   PUT /api/v1/forms/:id
-// @access  Private
-
+// @desc      Update a form
+// @route     PUT /api/v1/forms/:id
+// @access    Private
 const updateForm = asyncHandler(async (req, res) => {
-    
     const form = await Form.findById(req.params.id)
         .populate('organization')
         .populate('createdBy', 'firstName lastName');
@@ -184,8 +184,7 @@ const updateForm = asyncHandler(async (req, res) => {
 
         const updatedForm = await form.save();
 
-        // This function receives the populated organization object, which is fine.
-        await triggerWebhook('form.updated', updatedForm, form.organization);
+        await triggerWebhook('form.updated', updatedForm, form.organization._id);
 
         const message = `The form "${updatedForm.name}" has been updated.`;
         const link = `/forms/${updatedForm._id}`;
@@ -200,13 +199,12 @@ const updateForm = asyncHandler(async (req, res) => {
     }
 });
 
-// @desc    Delete a form
-// @route   DELETE /api/v1/forms/:id
-// @access  Private
-
+// @desc      Delete a form
+// @route     DELETE /api/v1/forms/:id
+// @access    Private
 const deleteForm = asyncHandler(async (req, res, next) => {
     const form = await Form.findById(req.params.id)
-        .populate('organization') // Keep populating, it's good practice
+        .populate('organization')
         .populate('createdBy', 'firstName lastName');
 
     if (form && form.organization._id.toString() === req.user.currentOrganization.toString()) {
@@ -215,16 +213,13 @@ const deleteForm = asyncHandler(async (req, res, next) => {
             formName: req.body.formName || form.name 
         };
 
-        // This function is fine
-        await triggerWebhook('form.deleted', { formId: form._id, formName: form.name }, form.organization);
+        await triggerWebhook('form.deleted', { formId: form._id, formName: form.name }, form.organization._id);
         
         const message = `The form "${form.name}" has been deleted.`;
-        
         if (form.createdBy) {
             await createNotification(form.createdBy._id, form.organization._id, 'form_deleted', message, null);
         }
 
-        // This function is also fine
         await form.deleteOne();
 
         res.json({ message: 'Form removed' });
