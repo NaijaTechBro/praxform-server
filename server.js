@@ -16,11 +16,15 @@ const auditRoutes = require('./routes/auditRoutes');
 const formtemplateRoutes = require('./routes/formtemplateRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+
+const { handleStripeWebhook } = require('./controllers/paymentController');
 dotenv.config();
 
 connectDB();
 
 const app = express();
+
+app.post('/api/v1/payments/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
 
 app.use(express.json());
 app.use(cookieParser());
