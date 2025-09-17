@@ -209,7 +209,9 @@ const deleteForm = asyncHandler(async (req, res, next) => {
             formId: form._id,
             formName: req.body.formName || form.name 
         };
-
+// Temporarily add this to your deleteForm function before the triggerWebhook call
+console.log('ATTEMPTING TO DELETE FORM:', form.name);
+console.log('POPULATED CREATED-BY USER:', form.createdBy); // <-- This is the important line
         await triggerWebhook('form.deleted', { formId: form._id, formName: form.name }, form.organization);
         
         const message = `The form "${form.name}" has been deleted.`;
