@@ -8,7 +8,7 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const PLANS = {
     starter: {
         name: 'Starter',
-        priceId: 'price_starter_plan_id',
+        priceId: 'price_1S8IcXFnPEdPZtOZOKjBDgTE',
         price: 0,
         frequency: '/year',
         limits: {
@@ -26,7 +26,7 @@ const PLANS = {
     },
     pro: {
         name: 'Pro',
-        priceId: 'price_pro_plan_id',
+        priceId: 'price_1S8IbiFnPEdPZtOZSdfqfHri',
         price: 49,
         frequency: '/year',
         limits: {
@@ -48,7 +48,7 @@ const PLANS = {
     },
     business: {
         name: 'Business',
-        priceId: 'price_business_plan_id',
+        priceId: 'price_1S8Ie5FnPEdPZtOZbiju1yg2',
         price: 99,
         frequency: '/year',
         limits: {
