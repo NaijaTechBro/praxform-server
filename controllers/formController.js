@@ -194,11 +194,15 @@ const updateForm = asyncHandler(async (req, res) => {
     }
 });
 
+// @desc    Delete a form
+// @route   DELETE /api/v1/forms/:id
+// @access  Private
+
 // in controllers/formController.js
 
 const deleteForm = asyncHandler(async (req, res, next) => {
     const form = await Form.findById(req.params.id)
-        .populate('organization')
+        .populate('organization') // Keep populating, it's good practice
         .populate('createdBy', 'firstName lastName');
 
     if (form && form.organization._id.toString() === req.user.currentOrganization.toString()) {
@@ -207,15 +211,16 @@ const deleteForm = asyncHandler(async (req, res, next) => {
             formName: req.body.formName || form.name 
         };
 
-        // --- TEST 1: UNCOMMENT THE WEBHOOK ONLY ---
+        // This function is fine
         await triggerWebhook('form.deleted', { formId: form._id, formName: form.name }, form.organization);
         
-        // --- Keep the notification commented out ---
-        // const message = `The form "${form.name}" has been deleted.`;
-        // if (form.createdBy) {
-        //     await createNotification(form.createdBy, form.organization, 'form_deleted', message, null);
-        // }
+        const message = `The form "${form.name}" has been deleted.`;
+        
+        if (form.createdBy) {
+            await createNotification(form.createdBy._id, form.organization._id, 'form_deleted', message, null);
+        }
 
+        // This function is also fine
         await form.deleteOne();
 
         res.json({ message: 'Form removed' });
