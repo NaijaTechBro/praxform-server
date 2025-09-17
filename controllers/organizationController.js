@@ -3,6 +3,8 @@ const Organization = require('../models/Organization');
 const User = require('../models/User'); 
 const crypto = require('crypto');     
 const bcrypt = require('bcryptjs');  
+const createNotification = require('../utils/createNotification');
+const triggerWebhook = require('../utils/triggerWebhook');
 
 // @desc    Get organization details
 // @route   GET /api/v1/organizations/:id
@@ -24,12 +26,17 @@ const getOrganizationById = asyncHandler(async (req, res) => {
 // @desc    Update organization details
 // @route   PUT /api/v1/organizations/:id
 // @access  Private/Owner or Admin
+// @desc      Update organization details
+// @route     PUT /api/v1/organizations/:id
+// @access    Private/Owner or Admin
 const updateOrganization = asyncHandler(async (req, res) => {
     const organization = await Organization.findById(req.params.id);
+
     if (!organization) {
         res.status(404);
         throw new Error('Organization not found');
     }
+
     const member = organization.members.find(member => member.userId.equals(req.user._id));
     if (!member || !['owner', 'admin'].includes(member.role)) {
         res.status(403);
@@ -52,14 +59,12 @@ const updateOrganization = asyncHandler(async (req, res) => {
 
     const updatedOrganization = await organization.save();
 
-    // Added: Trigger webhook for organization update
-    await triggerWebhook('organization.updated', updatedOrganization, organization._id);
+    const webhookPayload = updatedOrganization.toObject();
+    await triggerWebhook('organization.updated', webhookPayload, updatedOrganization._id);
 
-    // Added: Notify all admins and owners about the update
     const message = `The organization details for "${updatedOrganization.name}" were updated by ${req.user.firstName}.`;
     const adminsAndOwners = organization.members.filter(m => ['owner', 'admin'].includes(m.role));
     for (const admin of adminsAndOwners) {
-        // Avoid notifying the user who made the change
         if (admin.userId.toString() !== req.user._id.toString()) {
             await createNotification(admin.userId, organization._id, 'organization_update', message, '/settings/organization');
         }
@@ -67,7 +72,6 @@ const updateOrganization = asyncHandler(async (req, res) => {
     
     res.status(200).json(updatedOrganization);
 });
-
 
 // @desc    Generate new API Keys for an organization
 // @route   POST /api/v1/organizations/:id/api-keys
