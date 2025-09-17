@@ -184,7 +184,7 @@ const PLANS = {
         description: 'Full-featured form builder to create beautiful forms for all needs.', // Added for UI
         price: 0,
         frequency: '/year',
-        priceDetails: 'pay once', // Added for UI
+        priceDetails: 'Yearly', // Added for UI
         isRecommended: false, // Added for UI
         originalPrice: null, // Added for UI
         monthlyOption: null, // Added for UI
@@ -197,7 +197,7 @@ const PLANS = {
         description: 'All features to build advanced forms and elevate your business.', // Added for UI
         price: 49,
         frequency: '/year',
-        priceDetails: 'pay once', // Added for UI
+        priceDetails: 'Yearly', // Added for UI
         isRecommended: false, // Added for UI
         originalPrice: null, // Added for UI
         monthlyOption: null, // Added for UI
@@ -210,7 +210,7 @@ const PLANS = {
         description: 'For anyone who wants to transform their clients productivity and impress their clients.', // Added for UI
         price: 99,
         frequency: '/year',
-        priceDetails: 'pay once', // Added for UI
+        priceDetails: 'Yearly', // Added for UI
         originalPrice: '$150', // Added for UI
         monthlyOption: 'or 11 x $13.6/mo **', // Added for UI
         isRecommended: true, // Added for UI
