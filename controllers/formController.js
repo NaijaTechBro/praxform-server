@@ -193,37 +193,30 @@ const updateForm = asyncHandler(async (req, res) => {
         throw new Error('Form not found or not part of the current organization');
     }
 });
-
-// @desc    Delete a form
-// @route   DELETE /api/v1/forms/:id
-// @access  Private
+// in controllers/formController.js
 
 const deleteForm = asyncHandler(async (req, res, next) => {
-    // We are keeping the populate fix as it's still best practice
     const form = await Form.findById(req.params.id)
         .populate('organization')
-        .populate('createdBy', 'firstName lastName'); 
+        .populate('createdBy', 'firstName lastName');
 
     if (form && form.organization._id.toString() === req.user.currentOrganization.toString()) {
         res.locals.auditDetails = { 
             formId: form._id,
             formName: req.body.formName || form.name 
         };
-// Temporarily add this to your deleteForm function before the triggerWebhook call
-console.log('ATTEMPTING TO DELETE FORM:', form.name);
-console.log('POPULATED CREATED-BY USER:', form.createdBy); // <-- This is the important line
-        await triggerWebhook('form.deleted', { formId: form._id, formName: form.name }, form.organization);
+
+        // STEP 1: Comment these lines out for now
+        // await triggerWebhook('form.deleted', { formId: form._id, formName: form.name }, form.organization);
         
-        const message = `The form "${form.name}" has been deleted.`;
+        // const message = `The form "${form.name}" has been deleted.`;
+        // if (form.createdBy) {
+        //     await createNotification(form.createdBy, form.organization, 'form_deleted', message, null);
+        // }
 
-        // =================================================================
-        // THE FIX: Only create a notification if the creator user still exists
-        // =================================================================
-        if (form.createdBy) {
-            await createNotification(form.createdBy, form.organization, 'form_deleted', message, null);
-        }
-        // =================================================================
-
+        console.log('Webhook and Notification skipped. Attempting deletion...');
+        
+        // Let's see if the crash happens here
         await form.deleteOne();
 
         res.json({ message: 'Form removed' });
