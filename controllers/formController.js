@@ -5,23 +5,6 @@ const crypto = require('crypto');
 const sendEmail = require('../utils/email/sendEmail');
 const triggerWebhook = require('../utils/triggerWebhook');
 
-// @desc    Create a new form
-// @route   POST /api/v1/forms
-// @access  Private
-
-
-
-
-
-
-// controllers/formController.js
-
-const asyncHandler = require('express-async-handler');
-const Form = require('../models/Form');
-// ... other imports
-
-// NEW: Import the webhook trigger utility
-const triggerWebhook = require('../utils/triggerWebhook'); // Adjust path as needed
 
 // @desc    Create a new form
 // @route   POST /api/v1/forms
