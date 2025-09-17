@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler');
+const Organization = require('../models/Organization');
 const FormTemplate = require('../models/FormTemplate'); 
 
 // @desc    Create a new form template
@@ -12,6 +13,21 @@ const createFormTemplate = asyncHandler(async (req, res) => {
         res.status(400);
         throw new Error('User does not have a current organization selected');
     }
+
+    // Added: Plan limit enforcement
+    const organization = await Organization.findById(organizationId);
+    if (organization.planLimits.maxTemplates === 0) {
+        res.status(403);
+        throw new Error('Your current plan does not support creating templates. Please upgrade.');
+    }
+
+    const templateCount = await FormTemplate.countDocuments({ organization: organizationId });
+
+    if (templateCount >= organization.planLimits.maxTemplates) {
+        res.status(403);
+        throw new Error(`You have reached the limit of ${organization.planLimits.maxTemplates} templates for your plan. Please upgrade to create more.`);
+    }
+    // End: Plan limit enforcement
 
     // Basic validation for fields structure
     if (!Array.isArray(fields) || fields.some(field => !field.type || !field.label)) {

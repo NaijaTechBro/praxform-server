@@ -18,6 +18,16 @@ const createForm = asyncHandler(async (req, res) => {
         throw new Error('User does not have a current organization selected');
     }
 
+    // Added: Plan limit enforcement
+    const organization = await Organization.findById(organizationId);
+    const formCount = await Form.countDocuments({ organization: organizationId });
+
+    if (formCount >= organization.planLimits.maxForms) {
+        res.status(403); // 403 Forbidden is more appropriate than 400
+        throw new Error(`You have reached the limit of ${organization.planLimits.maxForms} forms for your plan. Please upgrade to create more.`);
+    }
+    // End: Plan limit enforcement
+
     const form = new Form({
         name,
         description,

@@ -25,6 +25,36 @@ const OrganizationSchema = new mongoose.Schema({
         role: { type: String, enum: ['owner', 'admin', 'manager', 'viewer'], default: 'viewer' }
     }],
     callbackUrl: { type: String, trim: true },
+    plan: {
+    type: String,
+    enum: ['starter', 'pro', 'business'],
+    default: 'starter',
+},
+// Payment details
+subscriptionId: { // From Stripe
+    type: String,
+    default: null,
+},
+customerId: { // From Stripe
+    type: String,
+    default: null,
+},
+subscriptionStatus: {
+    type: String,
+    enum: ['active', 'canceled', 'incomplete', 'past_due', null],
+    default: null,
+},
+currentPeriodEnd: { // From Stripe
+    type: Date,
+    default: null,
+},
+// Add plan limits to the model for easy checking
+planLimits: {
+    maxTeamMembers: { type: Number, default: 1 },
+    maxForms: { type: Number, default: 5 },
+    maxSubmissionsPerMonth: { type: Number, default: 50 },
+    maxTemplates: { type: Number, default: 3 },
+},
     apiKeys: [{
         name: String,
         key: String, 
@@ -34,7 +64,9 @@ const OrganizationSchema = new mongoose.Schema({
         expiresAt: Date
     }],
     webhooks: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Webhook' }]
-}, { timestamps: true });
+},
+
+{ timestamps: true });
 
 const Organization = mongoose.model('Organization', OrganizationSchema);
 module.exports = Organization;

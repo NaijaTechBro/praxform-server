@@ -3,9 +3,6 @@ const Submission = require('../models/Submission');
 const Form = require('../models/Form');
 const createNotification = require('../utils/createNotification');
 const triggerWebhook = require('../utils/triggerWebhook');
-const Webhook = require('../models/Webhook');
-const axios = require('axios');
-const crypto = require('crypto');
 
 // @desc    Create a new submission (public)
 // @route   POST /api/v1/submissions
@@ -14,6 +11,31 @@ const createSubmission = asyncHandler(async (req, res) => {
     const { formId, accessCode, data, encryptedData, files } = req.body;
 
     const form = await Form.findById(formId);
+
+       // Added: Plan limit enforcement
+    const organization = form.organization;
+    const maxSubmissions = organization.planLimits.maxSubmissionsPerMonth;
+
+    // Check only if the plan has a limit (unlimited is -1)
+    if (maxSubmissions !== -1) {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+        const monthlyCount = await Submission.countDocuments({
+            organization: organization._id,
+            createdAt: { $gte: startOfMonth, $lte: endOfMonth }
+        });
+
+        if (monthlyCount >= maxSubmissions) {
+            // Important: For a public endpoint, you might not want to reveal plan limits.
+            // Log the error for the organization owner and return a generic error to the submitter.
+            console.error(`Submission blocked for org ${organization._id}: Monthly limit of ${maxSubmissions} reached.`);
+            res.status(429); // 429 Too Many Requests
+            throw new Error('This form is currently not accepting new submissions.');
+        }
+    }
+    // End: Plan limit enforcement
 
     if (!form) {
         res.status(404);
