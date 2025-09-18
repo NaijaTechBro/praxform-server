@@ -315,12 +315,14 @@ const sendForm = asyncHandler(async (req, res) => {
             if (recipientIndex > -1) {
                 // Update existing recipient
                 form.recipients[recipientIndex].uniqueAccessCode = uniqueAccessCode;
+                form.recipients[recipientIndex].phone = recipient.phone || form.recipients[recipientIndex].phone;
                 form.recipients[recipientIndex].status = 'pending';
             } else {
                 // Add new recipient
                 form.recipients.push({
                     email: recipient.email,
                     name: recipient.name,
+                    phone: recipient.phone,
                     uniqueAccessCode,
                     status: 'pending'
                 });

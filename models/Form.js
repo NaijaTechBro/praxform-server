@@ -10,8 +10,13 @@ const FormSchema = new mongoose.Schema({
     recipients: [{
         email: String,
         name: String,
+        phone: String, // Added for SMS auth
         uniqueAccessCode: String,
-        status: { type: String, enum: ['pending', 'viewed', 'completed'], default: 'pending' }
+        status: { type: String, enum: ['pending', 'viewed', 'completed'], default: 'pending' },
+        // --- START OF FIX: Fields for 2FA ---
+        verificationCode: { type: String },
+        verificationCodeExpires: { type: Date }
+        // --- END OF FIX ---
     }],
     submissionCount: { type: Number, default: 0 },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

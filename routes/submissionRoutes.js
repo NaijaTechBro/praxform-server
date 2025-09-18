@@ -4,12 +4,14 @@ const {
     createSubmission,
     getSubmissionById,
     deleteSubmission,
-    getPublicFormByAccessCode 
+    getPublicFormByAccessCode,
+    verifySubmission 
 } = require('../controllers/submissionController');
 const { protect } = require('../middleware/authMiddleware');
 const audit = require('../middleware/auditMiddleware');
 
 router.post('/', createSubmission);
+router.post('/verify', verifySubmission); 
 
 router.get('/:id/:accessCode', getPublicFormByAccessCode);
 
