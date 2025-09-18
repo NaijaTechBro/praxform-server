@@ -45,6 +45,7 @@ const createSubmission = asyncHandler(async (req, res) => {
                 send_to: recipient.email,
                 subject: `Your PraxForm Verification Code`,
                 sent_from: `${process.env.PRAXFORM_FROM_NAME || 'PraxForm Team'} <${process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com'}>`,
+                reply_to: process.env.PRAXFORM_EMAIL_USER,
                 template: 'submission-code',
                 code: verificationCode
                 
