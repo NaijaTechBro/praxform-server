@@ -1,14 +1,12 @@
-// src/utils/triggerWebhook.js
-
 const axios = require('axios');
 const crypto = require('crypto');
-const Webhook = require('../models/Webhook'); // Adjust path as needed
+const Webhook = require('../models/Webhook');
 
 /**
  * Finds and sends webhooks for a given event.
- * @param {string} eventName - The name of the event (e.g., 'form.created').
- * @param {object} payload - The data to send with the webhook.
- * @param {string} organizationId - The ID of the organization that owns the webhooks.
+ * @param {string} eventName 
+ * @param {object} payload 
+ * @param {string} organizationId 
  */
 const triggerWebhook = async (eventName, payload, organizationId) => {
     try {
@@ -20,7 +18,7 @@ const triggerWebhook = async (eventName, payload, organizationId) => {
         });
 
         if (webhooks.length === 0) {
-            return; // No webhooks to send
+            return; 
         }
 
         const payloadString = JSON.stringify(payload);

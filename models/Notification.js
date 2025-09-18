@@ -1,5 +1,3 @@
-// models/Notification.js
-
 const mongoose = require('mongoose');
 
 const NotificationSchema = new mongoose.Schema({
@@ -15,8 +13,19 @@ const NotificationSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['form_submission', 'api_keys_generated', 'password_changed', 'new_member', 'form_created'],
-        required: true
+        required: true,
+        enum: [
+            'form_submission',
+            'form_update',
+            'form_deleted',
+            'form_created',
+            'api_keys_generated',
+            'password_changed',
+            'new_member',
+            'plan_upgrade',
+            'payment_failed',
+            'organization_update'
+        ]
     },
     message: { 
         type: String, 

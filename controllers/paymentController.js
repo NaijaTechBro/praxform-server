@@ -4,7 +4,6 @@ const User = require('../models/User');
 const createNotification = require('../utils/createNotification');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-// --- PLAN DEFINITIONS (WITH YOUR CORRECT PRICE IDs) ---
 const PLANS = {
     starter: {
         name: 'Starter', priceId: 'price_1S8IcXFnPEdPZtOZOKjBDgTE', description: 'Full-featured form builder to create beautiful forms for all needs.', price: 0, frequency: '/year', priceDetails: 'pay once', isRecommended: false, originalPrice: null, monthlyOption: null,
