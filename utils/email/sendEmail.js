@@ -14,6 +14,8 @@ const sendEmail = async (options) => {
         code,
         link,
         date,
+        organizationName,
+        inviterName
     } = options;
 
     // Validate template parameter
@@ -58,7 +60,9 @@ const sendEmail = async (options) => {
             name,
             code,
             link,
-            date
+            date,
+            organizationName,
+            inviterName
         },
     };
 

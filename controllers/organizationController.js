@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');  
 const createNotification = require('../utils/createNotification');
 const triggerWebhook = require('../utils/triggerWebhook');
+const sendEmail = require('../utils/email/sendEmail');
 
 // @desc    Get organization details
 // @route   GET /api/v1/organizations/:id
@@ -23,9 +24,6 @@ const getOrganizationById = asyncHandler(async (req, res) => {
     res.json(organization);
 });
 
-// @desc    Update organization details
-// @route   PUT /api/v1/organizations/:id
-// @access  Private/Owner or Admin
 // @desc      Update organization details
 // @route     PUT /api/v1/organizations/:id
 // @access    Private/Owner or Admin
@@ -140,11 +138,152 @@ const generateApiKeys = asyncHandler(async (req, res) => {
     });
 });
 
+// @desc      Invite a new member to an organization
+// @route     POST /api/v1/organizations/:id/members
+// @access    Private/Owner or Admin
+const inviteMember = asyncHandler(async (req, res) => {
+    const { email, role } = req.body;
+    const organizationId = req.params.id;
+
+    if (!email || !role) {
+        res.status(400);
+        throw new Error('Please provide an email and a role for the new member.');
+    }
+
+    const organization = await Organization.findById(organizationId);
+    if (!organization) {
+        res.status(404);
+        throw new Error('Organization not found.');
+    }
+
+    // 1. PERMISSION CHECK: Only Owner or Admin can invite
+    const inviterMembership = organization.members.find(m => m.userId.equals(req.user._id));
+    if (!inviterMembership || !['owner', 'admin'].includes(inviterMembership.role)) {
+        res.status(403);
+        throw new Error('You do not have permission to invite members to this organization.');
+    }
+
+    // 2. Find the user to be invited
+    const userToInvite = await User.findOne({ email });
+    if (!userToInvite) {
+        res.status(404);
+        throw new Error(`User with email ${email} not found. Please ask them to sign up first.`);
+    }
+
+    // 3. Check if the user is already a member
+    const isAlreadyMember = organization.members.some(m => m.userId.equals(userToInvite._id));
+    if (isAlreadyMember) {
+        res.status(400);
+        throw new Error('This user is already a member of the organization.');
+    }
+
+    // 4. Add the new member to the organization & user record
+    organization.members.push({ userId: userToInvite._id, role });
+    userToInvite.organizations.push(organization._id);
+    await organization.save();
+    await userToInvite.save();
+
+    // 5. Create in-app notification
+    const message = `You've been added to the "${organization.name}" organization as a(n) ${role}.`;
+    await createNotification(userToInvite._id, organization._id, 'new_member', message, '/dashboard');
+
+    // 6. ✅ ADDED: Send invitation email
+    try {
+        await sendEmail({
+            send_to: userToInvite.email,
+            subject: `You've been invited to join ${organization.name} on PraxForm`,
+            sent_from: `${process.env.PRAXFORM_FROM_NAME || 'PraxForm Team'} <${process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com'}>`,
+            reply_to: process.env.PRAXFORM_EMAIL_USER,
+            template: "member-invite",
+            name: userToInvite.firstName,
+            organizationName: organization.name,
+            inviterName: `${req.user.firstName} ${req.user.lastName}`,
+            link: `${process.env.PRAXFORM_FRONTEND_HOST}/dashboard`
+        });
+    } catch (emailError) {
+        console.error('Error sending invitation email:', emailError);
+        // Do not fail the request if the email fails, just log it
+    }
+
+    res.status(200).json({
+        success: true,
+        message: `${userToInvite.firstName} has been added and notified.`
+    });
+});
+
+// @desc      Remove a member from an organization
+// @route     DELETE /api/v1/organizations/:id/members/:memberId
+// @access    Private/Owner Only
+const removeMember = asyncHandler(async (req, res) => {
+    const { id: organizationId, memberId } = req.params;
+
+    const organization = await Organization.findById(organizationId);
+    if (!organization) {
+        res.status(404);
+        throw new Error('Organization not found.');
+    }
+
+    // 1. PERMISSION CHECK: Must be an owner
+    const removerMembership = organization.members.find(m => m.userId.equals(req.user._id));
+    if (!removerMembership || removerMembership.role !== 'owner') {
+        res.status(403);
+        throw new Error('You do not have permission to remove members.');
+    }
+    
+    // Find the user being removed *before* changing data
+    const removedUser = await User.findById(memberId);
+    if (!removedUser) {
+        res.status(404);
+        throw new Error('Member to be removed not found.');
+    }
+
+    // 2. Logic to prevent removing the last owner
+    const memberToRemove = organization.members.find(m => m.userId.equals(memberId));
+    if (memberToRemove && memberToRemove.role === 'owner') {
+        const ownerCount = organization.members.filter(m => m.role === 'owner').length;
+        if (ownerCount <= 1) {
+            res.status(400);
+            throw new Error('Cannot remove the only owner of the organization.');
+        }
+    }
+    
+    // 3. Remove the member from the organization & user record
+    organization.members.pull({ userId: memberId });
+    removedUser.organizations.pull(organizationId);
+    if (removedUser.currentOrganization && removedUser.currentOrganization.equals(organizationId)) {
+        removedUser.currentOrganization = removedUser.organizations[0] || null;
+    }
+    await organization.save();
+    await removedUser.save();
+    
+    // 4. ✅ ADDED: Send removal email
+    try {
+        await sendEmail({
+            send_to: removedUser.email,
+            subject: `You have been removed from ${organization.name}`,
+            sent_from: `${process.env.PRAXFORM_FROM_NAME || 'PraxForm Team'} <${process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com'}>`,
+            reply_to: process.env.PRAXFORM_EMAIL_USER,
+            template: "member-removed",
+            name: removedUser.firstName,
+            organizationName: organization.name
+        });
+    } catch (emailError) {
+        console.error('Error sending removal email:', emailError);
+    }
+    
+    res.status(200).json({
+        success: true,
+        message: 'Member removed successfully.'
+    });
+});
+
+
+
 
 module.exports = { 
     getOrganizationById, 
     updateOrganization, 
-    generateApiKeys
+    generateApiKeys,
+    inviteMember,
+    removeMember
 };
-
-

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Your Submission verification Code</title>
+  <title>You've Been Invited!</title>
   <style>
     body {
       background-color: #f7f7f7;
@@ -48,19 +48,19 @@
       margin-bottom: 16px;
       color: #37352f;
     }
-    .verification-code {
-      font-size: 28px;
-      font-weight: 700;
-      color: #1475F4;
+    .button-container {
       text-align: center;
-      padding: 15px 20px;
-      background-color: #f0f8ff;
-      border: 1px dashed #a0d1ff;
+      margin: 30px 0;
+    }
+    .button {
+      background-color: #1475F4;
+      color: #ffffff;
+      padding: 14px 28px;
+      text-decoration: none;
       border-radius: 8px;
-      margin: 30px auto;
-      display: block;
-      max-width: fit-content;
-      letter-spacing: 2px;
+      font-weight: 600;
+      font-size: 15px;
+      display: inline-block;
     }
     .footer {
       margin-top: 40px;
@@ -84,15 +84,17 @@
       <img src="https://praxform.com/assets/logo-B-nqIDlQ.png" alt="PraxForm Logo" class="logo-image" />
     </div>
     
-    <h2>Hello,</h2>
+    <h2>Hello, {{name}}!</h2>
     
-    <p>Please use the following 6-digit verification code to complete your form submission. This is an extra security step to ensure it's really you.</p>
+    <p><span class="highlight">{{inviterName}}</span> has invited you to join the <span class="highlight">{{organizationName}}</span> organization on PraxForm.</p>
     
-    <div class="verification-code">{{code}}</div>
+    <p>You can now collaborate with the team and manage your forms. Click the button below to access your dashboard.</p>
     
-    <p>This code will expire in 10 minutes for security reasons.</p>
+    <div class="button-container">
+      <a href="{{link}}" class="button">Go to Dashboard</a>
+    </div>
     
-    <p>If you did not attempt to submit a form with PraxForm, please ignore this email.</p>
+    <p>If you did not expect this invitation, you can safely ignore this email.</p>
     
     <div class="divider"></div>
     

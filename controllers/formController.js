@@ -44,6 +44,11 @@ const createForm = asyncHandler(async (req, res) => {
 
     await triggerWebhook('form.created', createdForm.toObject(), organizationId);
     
+    const message = `A new form "${createdForm.name}" was created.`;
+    const link = `/forms/${createdForm._id}`;
+    await createNotification(req.user._id, organizationId, 'form_created', message, link);
+    
+    
     res.status(201).json(createdForm);
 });
  

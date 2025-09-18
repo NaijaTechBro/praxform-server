@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Your Submission verification Code</title>
+  <title>Organization Membership Update</title>
   <style>
     body {
       background-color: #f7f7f7;
@@ -48,20 +48,6 @@
       margin-bottom: 16px;
       color: #37352f;
     }
-    .verification-code {
-      font-size: 28px;
-      font-weight: 700;
-      color: #1475F4;
-      text-align: center;
-      padding: 15px 20px;
-      background-color: #f0f8ff;
-      border: 1px dashed #a0d1ff;
-      border-radius: 8px;
-      margin: 30px auto;
-      display: block;
-      max-width: fit-content;
-      letter-spacing: 2px;
-    }
     .footer {
       margin-top: 40px;
       text-align: center;
@@ -84,15 +70,11 @@
       <img src="https://praxform.com/assets/logo-B-nqIDlQ.png" alt="PraxForm Logo" class="logo-image" />
     </div>
     
-    <h2>Hello,</h2>
+    <h2>Hello, {{name}},</h2>
     
-    <p>Please use the following 6-digit verification code to complete your form submission. This is an extra security step to ensure it's really you.</p>
+    <p>This is a notification to inform you that you have been removed from the <span class="highlight">{{organizationName}}</span> organization on PraxForm.</p>
     
-    <div class="verification-code">{{code}}</div>
-    
-    <p>This code will expire in 10 minutes for security reasons.</p>
-    
-    <p>If you did not attempt to submit a form with PraxForm, please ignore this email.</p>
+    <p>You will no longer have access to this organization's forms or data. If you believe this was a mistake, please contact the owner of the organization directly.</p>
     
     <div class="divider"></div>
     
