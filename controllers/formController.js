@@ -335,7 +335,7 @@ const sendForm = asyncHandler(async (req, res) => {
                     send_to: recipient.email,
                     subject: `You have a new form to fill out from ${senderName}: ${form.name}`,
                     sent_from: `${process.env.PRAXFORM_FROM_NAME || 'PraxForm Team'} <${process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com'}>`,
-                    reply_to: senderEmail,
+                    reply_to: process.env.PRAXFORM_EMAIL_USER,
                     template: 'form-invitation',
                     name: recipient.name || recipient.email,
                     link: formUrl,
