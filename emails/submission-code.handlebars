@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your Verification Code</title>
+  <style>
+    body {
+      background-color: #f7f7f7;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      margin: 0;
+      color: #37352f;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      padding: 40px;
+      border-radius: 3px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    .logo {
+      text-align: center;
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .logo-image {
+      height: 30px;
+      margin-right: 8px;
+    }
+    h2 {
+      color: #000000;
+      margin-bottom: 24px;
+      font-weight: 600;
+      font-size: 20px;
+    }
+    .highlight {
+      color: #000000;
+      font-weight: 600;
+    }
+    p {
+      font-size: 15px;
+      line-height: 1.6;
+      margin-bottom: 16px;
+      color: #37352f;
+    }
+    .verification-code {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1475F4;
+      text-align: center;
+      padding: 15px 20px;
+      background-color: #f0f8ff;
+      border: 1px dashed #a0d1ff;
+      border-radius: 8px;
+      margin: 30px auto;
+      display: block;
+      max-width: fit-content;
+      letter-spacing: 2px;
+    }
+    .footer {
+      margin-top: 40px;
+      text-align: center;
+      color: #6b6b6b;
+      font-size: 14px;
+    }
+    .company-name {
+      color: #000000;
+      font-weight: 500;
+    }
+    .divider {
+      border-top: 1px solid #eaeaea;
+      margin: 24px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <img src="https://praxform.com/assets/logo-B-nqIDlQ.png" alt="PraxForm Logo" class="logo-image" />
+    </div>
+    
+    <h2>Hello,</h2>
+    
+    <p>Please use the following 6-digit verification code to complete your form submission. This is an extra security step to ensure it's really you.</p>
+    
+    <div class="verification-code">{{code}}</div>
+    
+    <p>This code will expire in 10 minutes for security reasons.</p>
+    
+    <p>If you did not attempt to submit a form with PraxForm, please ignore this email.</p>
+    
+    <div class="divider"></div>
+    
+    <div class="footer">
+      <p>Regards,</p>
+      <p class="company-name">PraxForm Team</p>
+    </div>
+  </div>
+</body>
+</html>

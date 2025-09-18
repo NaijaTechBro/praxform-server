@@ -42,12 +42,12 @@ const createSubmission = asyncHandler(async (req, res) => {
 
         if (form.settings.requireEmailAuth) {
             await sendEmail({
-                    send_to: recipient.email,
-                    subject: `Your PraxForm Verification Code: ${verificationCode}`,
-                    sent_from: `${process.env.PRAXFORM_FROM_NAME || 'PraxForm Team'} <${process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com'}>`,
-                    template: 'verification-code',
-                    name: recipient.name || recipient.email,
-                    code: verificationCode
+                send_to: recipient.email,
+                subject: `Your PraxForm Verification Code`,
+                sent_from: `${process.env.PRAXFORM_FROM_NAME || 'PraxForm Team'} <${process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com'}>`,
+                template: 'submission-code',
+                code: verificationCode
+                
             });
         }
         
