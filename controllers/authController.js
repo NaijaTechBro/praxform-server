@@ -46,7 +46,7 @@ const generateTokens = (id) => {
 // Helper to set the refresh token cookie and send the final response
 const sendTokenResponse = async (user, statusCode, res) => {
     const { accessToken, refreshToken } = generateTokens(user._id);
-    const populatedUser = await User.findById(user._id).populate('currentOrganization', 'name');
+    const populatedUser = await User.findById(user._id).populate('currentOrganization', 'name logo');
     const cookieExpiryMs = parseExpiry(process.env.JWT_REFRESH_EXPIRY);
     const cookieOptions = {
         expires: new Date(Date.now() + cookieExpiryMs),
@@ -397,7 +397,7 @@ const logout = asyncHandler(async (req, res) => {
 // @route     GET /api/v1/auth/me
 // @access    Private
 const getMe = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.user._id).populate('currentOrganization', 'name');
+    const user = await User.findById(req.user._id).populate('currentOrganization', 'name logo');
     if (user) {
         res.json({
             _id: user._id,
