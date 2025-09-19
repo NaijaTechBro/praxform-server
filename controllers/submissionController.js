@@ -365,6 +365,7 @@ const getSubmissionsByForm = asyncHandler(async (req, res) => {
     }
 });
 
+
 // @desc      Get a single submission by ID
 // @route     GET /api/v1/submissions/:id
 // @access    Private
@@ -372,7 +373,6 @@ const getSubmissionById = asyncHandler(async (req, res) => {
     const submission = await Submission.findById(req.params.id);
     if (submission && submission.organization.toString() === req.user.currentOrganization.toString()) {
         
-        // FIX: Add form name to audit details for better logging
         const form = await Form.findById(submission.form).select('name');
         if (form) {
             res.locals.auditDetails = { 
@@ -394,6 +394,16 @@ const getSubmissionById = asyncHandler(async (req, res) => {
 const deleteSubmission = asyncHandler(async (req, res) => {
     const submission = await Submission.findById(req.params.id);
     if (submission && submission.organization.toString() === req.user.currentOrganization.toString()) {
+        
+        // FIX: Get form context before deleting for a better audit log
+        const form = await Form.findById(submission.form).select('name');
+        if (form) {
+            res.locals.auditDetails = {
+                formName: form.name,
+                submissionId: submission._id.toString()
+            };
+        }
+        
         await submission.remove();
         res.json({ message: 'Submission removed' });
     } else {
@@ -412,7 +422,6 @@ const logSubmissionDownload = asyncHandler(async (req, res) => {
         throw new Error('Submission not found');
     }
 
-    // FIX: Add form name to audit details for better logging
     const form = await Form.findById(submission.form).select('name');
     if (form) {
         res.locals.auditDetails = { 
