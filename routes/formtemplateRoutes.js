@@ -6,6 +6,8 @@ const {
     getFormTemplateById,
     updateFormTemplate,
     deleteFormTemplate,
+    updateTemplateHeaderImage,
+    updateTemplateWatermarkImage
 } = require('../controllers/formtemplateController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -17,5 +19,8 @@ router.route('/:id')
     .get(protect, getFormTemplateById)
     .put(protect, updateFormTemplate)
     .delete(protect, deleteFormTemplate);
+router.put('/:id/header-image', protect, updateTemplateHeaderImage);
+router.put('/:id/watermark-image', protect, updateTemplateWatermarkImage);
+
 
 module.exports = router;

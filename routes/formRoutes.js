@@ -7,7 +7,9 @@ const {
     updateForm, 
     deleteForm, 
     sendForm,
-    generateSecureLink
+    generateSecureLink,
+    updateFormHeaderImage,
+    updateFormWatermarkImage
 } = require('../controllers/formController');
 const { getSubmissionsByForm } = require('../controllers/submissionController');
 const { protect } = require('../middleware/authMiddleware');
@@ -21,6 +23,10 @@ router.route('/:id')
     .get(protect, getFormById) 
     .put(protect, audit('form.updated', 'form'), updateForm)
     .delete(protect, audit('form.deleted', 'form'), deleteForm);
+
+router.put('/:id/header-image', protect, updateFormHeaderImage);
+router.put('/:id/watermark-image', protect, updateFormWatermarkImage);
+
 
 router.post('/:id/send', protect, audit('form.sent', 'form'), sendForm);
 

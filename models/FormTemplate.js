@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { deleteFromCloudinary } = require('../utils/cloudinary');
 
 const FormTemplateSchema = new mongoose.Schema({
     name: { type: String, required: true, trim: true },
@@ -12,20 +13,40 @@ const FormTemplateSchema = new mongoose.Schema({
     isPublic: { type: Boolean, default: false },
     category: { type: String, enum: ['payment', 'tax', 'onboarding', 'consent', 'survey', 'other'], default: 'other' },
     fields: { type: Array, default: [] },
+    headerImage: {
+        public_id: { type: String },
+        url: { type: String }
+    },
+    settings: {
+        watermarkImage: {
+            public_id: { type: String },
+            url: { type: String }
+        }
+    },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
 
-//Expanded the existing hook to also delete form images from Cloudinary
+// //Expanded the existing hook to also delete form images from Cloudinary
+// FormTemplateSchema.pre('deleteOne', { document: true, query: false }, async function(next) {
+//     console.log(`Deleting submissions for form: ${this._id}`);
+//     await this.model('FormTemplate').deleteMany({ form: this._id });
+    
+//     if (this.images && this.images.length > 0) {
+//         console.log(`Deleting ${this.images.length} images for form: ${this._id}`);
+//         const deletions = this.images.map(img => deleteFromCloudinary(img.public_id));
+//         await Promise.all(deletions);
+//     }
+    
+//     next();
+// });
+
 FormTemplateSchema.pre('deleteOne', { document: true, query: false }, async function(next) {
-    console.log(`Deleting submissions for form: ${this._id}`);
-    await this.model('FormTemplate').deleteMany({ form: this._id });
-    
-    if (this.images && this.images.length > 0) {
-        console.log(`Deleting ${this.images.length} images for form: ${this._id}`);
-        const deletions = this.images.map(img => deleteFromCloudinary(img.public_id));
-        await Promise.all(deletions);
+    if (this.headerImage && this.headerImage.public_id) {
+        await deleteFromCloudinary(this.headerImage.public_id);
     }
-    
+    if (this.settings.watermarkImage && this.settings.watermarkImage.public_id) {
+        await deleteFromCloudinary(this.settings.watermarkImage.public_id);
+    }
     next();
 });
 

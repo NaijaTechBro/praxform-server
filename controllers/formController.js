@@ -2,6 +2,7 @@ const asyncHandler = require('express-async-handler');
 const Form = require('../models/Form');
 const Organization = require('../models/Organization');
 const crypto = require('crypto');
+const { deleteFromCloudinary } = require('../utils/cloudinary');
 const sendEmail = require('../utils/email/sendEmail');
 const triggerWebhook = require('../utils/triggerWebhook');
 const createNotification = require('../utils/createNotification');
@@ -257,4 +258,44 @@ const deleteForm = asyncHandler(async (req, res, next) => {
     }
 });
 
-module.exports = { createForm, getForms, getFormById, updateForm, deleteForm, sendForm, generateSecureLink };
+
+const updateFormHeaderImage = asyncHandler(async (req, res) => {
+    const { public_id, url } = req.body;
+    const form = await Form.findById(req.params.id);
+
+    if (form && form.organization.toString() === req.user.currentOrganization.toString()) {
+        if (form.headerImage && form.headerImage.public_id) {
+            await deleteFromCloudinary(form.headerImage.public_id);
+        }
+        form.headerImage = { public_id, url };
+        await form.save();
+        res.status(200).json({
+            message: 'Header image updated successfully',
+            headerImage: form.headerImage,
+        });
+    } else {
+        res.status(404).json({ message: 'Form not found or not part of the current organization' });
+    }
+});
+
+
+const updateFormWatermarkImage = asyncHandler(async (req, res) => {
+    const { public_id, url } = req.body;
+    const form = await Form.findById(req.params.id);
+
+    if (form && form.organization.toString() === req.user.currentOrganization.toString()) {
+        if (form.settings.watermarkImage && form.settings.watermarkImage.public_id) {
+            await deleteFromCloudinary(form.settings.watermarkImage.public_id);
+        }
+        form.settings.watermarkImage = { public_id, url };
+        await form.save();
+        res.status(200).json({
+            message: 'Watermark image updated successfully',
+            watermarkImage: form.settings.watermarkImage,
+        });
+    } else {
+        res.status(404).json({ message: 'Form not found or not part of the current organization' });
+    }
+});
+
+module.exports = { createForm, getForms, getFormById, updateForm, deleteForm, sendForm, generateSecureLink, updateFormHeaderImage, updateFormWatermarkImage };

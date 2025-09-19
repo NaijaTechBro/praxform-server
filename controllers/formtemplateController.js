@@ -1,5 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const Organization = require('../models/Organization');
+const { deleteFromCloudinary } = require('../utils/cloudinary');
 const FormTemplate = require('../models/FormTemplate'); 
 
 // @desc    Create a new form template
@@ -142,10 +143,53 @@ const deleteFormTemplate = asyncHandler(async (req, res) => {
     res.json({ message: 'Form template removed successfully' });
 });
 
+const updateTemplateHeaderImage = asyncHandler(async (req, res) => {
+    const { public_id, url } = req.body;
+    const template = await FormTemplate.findById(req.params.id);
+
+    if (template && template.organization.toString() === req.user.currentOrganization.toString()) {
+        if (template.headerImage && template.headerImage.public_id) {
+            await deleteFromCloudinary(template.headerImage.public_id);
+        }
+        template.headerImage = { public_id, url };
+        await template.save();
+        res.status(200).json({
+            message: 'Header image updated successfully',
+            headerImage: template.headerImage,
+        });
+    } else {
+        res.status(404).json({ message: 'Template not found or not part of your organization' });
+    }
+});
+
+// NEW: Controller to update a template's watermark image
+const updateTemplateWatermarkImage = asyncHandler(async (req, res) => {
+    const { public_id, url } = req.body;
+    const template = await FormTemplate.findById(req.params.id);
+
+    if (template && template.organization.toString() === req.user.currentOrganization.toString()) {
+        if (template.settings.watermarkImage && template.settings.watermarkImage.public_id) {
+            await deleteFromCloudinary(template.settings.watermarkImage.public_id);
+        }
+        template.settings.watermarkImage = { public_id, url };
+        await template.save();
+        res.status(200).json({
+            message: 'Watermark image updated successfully',
+            watermarkImage: template.settings.watermarkImage,
+        });
+    } else {
+        res.status(404).json({ message: 'Template not found or not part of your organization' });
+    }
+});
+
+
 module.exports = {
     createFormTemplate,
     getFormTemplates,
     getFormTemplateById,
     updateFormTemplate,
     deleteFormTemplate,
+    updateTemplateHeaderImage,
+    updateTemplateWatermarkImage
+
 };
