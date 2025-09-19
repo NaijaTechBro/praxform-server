@@ -6,33 +6,30 @@ const Form = require('../models/Form');
 // @route     POST /api/v1/uploads/signature
 // @access    Private
 const generateSignature = asyncHandler(async (req, res) => {
-  const { folder } = req.body;
+    const { folder } = req.body;
 
-  if (!folder) {
-    res.status(400);
-    throw new Error('Folder parameter is required');
-  }
+    if (!folder) {
+        res.status(400);
+        throw new Error('Folder parameter is required');
+    }
 
-  const timestamp = Math.round(new Date().getTime() / 1000);
+    const timestamp = Math.round(new Date().getTime() / 1000);
 
-  const uploadPreset = 'praxform_public_uploads';
-  // Generate the signature using the Cloudinary SDK
-  const signature = cloudinary.utils.api_sign_request(
-    {
-      timestamp: timestamp,
-      folder,
-      upload_preset: uploadPreset
-    },
-    process.env.CLOUDINARY_API_SECRET
-  );
+    // FIX: Removed the upload_preset. It's not needed for private, authenticated uploads.
+    const signature = cloudinary.utils.api_sign_request(
+        {
+            timestamp: timestamp,
+            folder: folder,
+        },
+        process.env.CLOUDINARY_API_SECRET
+    );
 
-  res.status(200).json({
-    timestamp,
-    signature,
-    folder,
-    apiKey: process.env.CLOUDINARY_API_KEY,
-    uploadPreset
-  });
+    res.status(200).json({
+        timestamp,
+        signature,
+        folder,
+        apiKey: process.env.CLOUDINARY_API_KEY,
+    });
 });
 
 
@@ -59,21 +56,32 @@ const generatePublicSignature = asyncHandler(async (req, res) => {
         res.status(403);
         throw new Error('Invalid or expired access code');
     }
-    // End Security Check
 
     const timestamp = Math.round(new Date().getTime() / 1000);
-    const signature = cloudinary.utils.api_sign_request({ timestamp, folder }, process.env.CLOUDINARY_API_SECRET);
+    
+    // FIX: Define and include the upload_preset required for public uploads.
+    const uploadPreset = 'praxform_public_uploads';
+
+    const signature = cloudinary.utils.api_sign_request(
+        { 
+            timestamp, 
+            folder,
+            upload_preset: uploadPreset // This MUST be included in the signature
+        }, 
+        process.env.CLOUDINARY_API_SECRET
+    );
 
     res.status(200).json({
         timestamp,
         signature,
         folder,
         apiKey: process.env.CLOUDINARY_API_KEY,
+        uploadPreset // Also send the preset name to the frontend
     });
 });
 
 
 module.exports = { 
-  generateSignature,
-  generatePublicSignature
- };
+    generateSignature,
+    generatePublicSignature
+};
