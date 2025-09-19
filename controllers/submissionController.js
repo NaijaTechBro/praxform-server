@@ -58,7 +58,15 @@ const getPublicFormByAccessCode = asyncHandler(async (req, res) => {
         return;
     }
 
-    const publicForm = { _id: form._id, name: form.name, description: form.description, fields: form.fields, encryptionKey: form.encryptionKey };
+    const publicForm = {
+        _id: form._id, 
+        name: form.name, 
+        description: form.description, 
+        fields: form.fields, 
+        encryptionKey: form.encryptionKey,
+        headerImage: form.headerImage,
+        settings: form.settings 
+     };
     res.json(publicForm);
 });
 
