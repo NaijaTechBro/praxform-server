@@ -64,7 +64,9 @@ const sendTokenResponse = async (user, statusCode, res) => {
             lastName: populatedUser.lastName,
             email: populatedUser.email,
             currentOrganization: populatedUser.currentOrganization,
-            avatar: populatedUser.avatar
+            avatar: populatedUser.avatar,
+            preferences: populatedUser.preferences,
+            mfaEnabled: populatedUser.mfaEnabled,
 
         },
         accessToken,
