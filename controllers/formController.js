@@ -160,7 +160,10 @@ const generateSecureLink = asyncHandler(async (req, res) => {
         await form.save();
         
         const secureUrl = `${process.env.PRAXFORM_FRONTEND_HOST}/form/public/${form._id}/${form.publicLink.uniqueAccessCode}`;
-        
+        res.locals.auditDetails = { 
+            formName: form.name,
+            generatedLink: secureUrl
+        };
         res.json({ success: true, link: secureUrl });
     } else {
         res.status(404);
