@@ -15,7 +15,7 @@ const generateSixDigitCode = () => Math.floor(100000 + Math.random() * 900000).t
 // @access    Public
 const getPublicFormByAccessCode = asyncHandler(async (req, res) => {
     const { id, accessCode } = req.params;
-    const form = await Form.findById(id);
+     const form = await Form.findById(id).populate('organization', 'name');
 
     if (!form) { res.status(404); throw new Error('Form not found'); }
     if (form.settings.dueDate && new Date() > new Date(form.settings.dueDate)) { res.status(403); throw new Error('This form is past its due date.'); }
@@ -65,7 +65,8 @@ const getPublicFormByAccessCode = asyncHandler(async (req, res) => {
         fields: form.fields, 
         encryptionKey: form.encryptionKey,
         headerImage: form.headerImage,
-        settings: form.settings 
+        settings: form.settings,
+        organizationName: form.organization.name 
      };
     res.json(publicForm);
 });
