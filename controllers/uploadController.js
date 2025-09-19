@@ -15,11 +15,13 @@ const generateSignature = asyncHandler(async (req, res) => {
 
   const timestamp = Math.round(new Date().getTime() / 1000);
 
+  const uploadPreset = 'praxform_public_uploads';
   // Generate the signature using the Cloudinary SDK
   const signature = cloudinary.utils.api_sign_request(
     {
       timestamp: timestamp,
-      folder: folder,
+      folder,
+      upload_preset: uploadPreset
     },
     process.env.CLOUDINARY_API_SECRET
   );
@@ -29,6 +31,7 @@ const generateSignature = asyncHandler(async (req, res) => {
     signature,
     folder,
     apiKey: process.env.CLOUDINARY_API_KEY,
+    uploadPreset
   });
 });
 
