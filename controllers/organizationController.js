@@ -1,6 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const Organization = require('../models/Organization');
 const User = require('../models/User'); 
+const { deleteFromCloudinary } = require('../utils/cloudinary');
 const crypto = require('crypto');     
 const bcrypt = require('bcryptjs');  
 const createNotification = require('../utils/createNotification');
@@ -277,6 +278,46 @@ const removeMember = asyncHandler(async (req, res) => {
     });
 });
 
+// @desc      Update organization logo
+// @route     PUT /api/v1/organizations/:id/logo
+// @access    Private/Admin or Owner
+const updateOrganizationLogo = asyncHandler(async (req, res) => {
+    const { public_id, url } = req.body;
+    const organizationId = req.params.id;
+
+    if (!public_id || !url) {
+        res.status(400);
+        throw new Error('Please provide public_id and url');
+    }
+
+    const organization = await Organization.findById(organizationId);
+
+    if (!organization) {
+        res.status(404);
+        throw new Error('Organization not found');
+    }
+
+    // Permission check
+    const member = organization.members.find(m => m.userId.equals(req.user._id));
+    if (!member || !['owner', 'admin'].includes(member.role)) {
+        res.status(403);
+        throw new Error('User does not have permission to update this organization');
+    }
+
+    // Check if there is an old logo and delete it from Cloudinary
+    if (organization.logo && organization.logo.public_id) {
+        await deleteFromCloudinary(organization.logo.public_id);
+    }
+
+    // Update with the new logo info
+    organization.logo = { public_id, url };
+    await organization.save();
+
+    res.status(200).json({
+        message: 'Organization logo updated successfully',
+        logo: organization.logo,
+    });
+});
 
 
 
@@ -285,5 +326,6 @@ module.exports = {
     updateOrganization, 
     generateApiKeys,
     inviteMember,
-    removeMember
+    removeMember,
+    updateOrganizationLogo
 };
