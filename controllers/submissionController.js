@@ -204,9 +204,6 @@
 //     deleteSubmission 
 // };
 
-
-
-
 const asyncHandler = require('express-async-handler');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
@@ -374,6 +371,16 @@ const getSubmissionsByForm = asyncHandler(async (req, res) => {
 const getSubmissionById = asyncHandler(async (req, res) => {
     const submission = await Submission.findById(req.params.id);
     if (submission && submission.organization.toString() === req.user.currentOrganization.toString()) {
+        
+        // FIX: Add form name to audit details for better logging
+        const form = await Form.findById(submission.form).select('name');
+        if (form) {
+            res.locals.auditDetails = { 
+                formName: form.name, 
+                submissionId: submission._id.toString() 
+            };
+        }
+        
         res.json(submission);
     } else {
         res.status(404);
@@ -399,13 +406,21 @@ const deleteSubmission = asyncHandler(async (req, res) => {
 // @route     POST /api/v1/submissions/:id/log-download
 // @access    Private
 const logSubmissionDownload = asyncHandler(async (req, res) => {
-    // We only need to verify that the user has access. The audit middleware does the logging.
     const submission = await Submission.findById(req.params.id);
     if (!submission || submission.organization.toString() !== req.user.currentOrganization.toString()) {
         res.status(404);
         throw new Error('Submission not found');
     }
-    // If we get here, the user has access, and the middleware will log the success.
+
+    // FIX: Add form name to audit details for better logging
+    const form = await Form.findById(submission.form).select('name');
+    if (form) {
+        res.locals.auditDetails = { 
+            formName: form.name, 
+            submissionId: submission._id.toString() 
+        };
+    }
+    
     res.status(200).json({ message: 'Download event acknowledged.' });
 });
 
