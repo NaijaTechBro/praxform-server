@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const { deleteFromCloudinary } = require('../utils/cloudinary');
 
 const UserSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true, lowercase: true, trim: true, index: true },
@@ -7,6 +8,10 @@ const UserSchema = new mongoose.Schema({
     authMethod: { type: String, enum: ['local', 'google', 'microsoft', 'magic-link'], default: 'local' },
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },
+     avatar: {
+        public_id: { type: String },
+        url: { type: String }
+    },
     isEmailVerified: { type: Boolean, default: false },
     isPhoneVerified: { type: Boolean, default: false },
     mfaEnabled: { type: Boolean, default: false },
@@ -40,8 +45,15 @@ UserSchema.pre('save', async function(next) {
     next();
 });
 
+UserSchema.pre('remove', async function(next) {
+    if (this.avatar && this.avatar.public_id) {
+        await deleteFromCloudinary(this.avatar.public_id);
+    }
+    next();
+});
+
 UserSchema.methods.matchPassword = async function(enteredPassword) {
-    // Only compare if passwordHash exists (for local auth)
+    
     if (this.passwordHash) {
         return await bcrypt.compare(enteredPassword, this.passwordHash);
     }

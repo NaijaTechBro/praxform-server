@@ -4,6 +4,11 @@ const FormSchema = new mongoose.Schema({
     name: { type: String, required: true, trim: true },
     description: { type: String, trim: true },
     organization: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', required: true },
+    images: [{
+        public_id: { type: String, required: true },
+        url: { type: String, required: true },
+        original_filename: { type: String }
+    }],
     template: { type: mongoose.Schema.Types.ObjectId, ref: 'FormTemplate' },
     fields: { type: Array, default: [] },
     status: { type: String, enum: ['draft', 'active', 'paused', 'archived'], default: 'draft' },
@@ -36,6 +41,22 @@ FormSchema.pre('deleteOne', { document: true, query: false }, async function(nex
     await this.model('Submission').deleteMany({ form: this._id });
     next();
 });
+
+//Expanded the existing hook to also delete form images from Cloudinary
+FormSchema.pre('deleteOne', { document: true, query: false }, async function(next) {
+    console.log(`Deleting submissions for form: ${this._id}`);
+    await this.model('Submission').deleteMany({ form: this._id });
+    
+    if (this.images && this.images.length > 0) {
+        console.log(`Deleting ${this.images.length} images for form: ${this._id}`);
+        const deletions = this.images.map(img => deleteFromCloudinary(img.public_id));
+        await Promise.all(deletions);
+    }
+    
+    next();
+});
+
+
 
 const Form = mongoose.model('Form', FormSchema);
 module.exports = Form;

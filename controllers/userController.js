@@ -1,5 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
+const { deleteFromCloudinary } = require('../utils/cloudinary');
 
 // @desc    Get all users (admin)
 // @route   GET /api/v1/users
@@ -120,5 +121,38 @@ const deleteUser = asyncHandler(async (req, res) => {
     }
 });
 
+// @desc      Update user avatar
+// @route     PUT /api/v1/users/me/avatar
+// @access    Private
+const updateUserAvatar = asyncHandler(async (req, res) => {
+  const { public_id, url } = req.body;
 
-module.exports = { getUsers, getUserById, updateUser, toggleMfaStatus, deleteUser };
+  if (!public_id || !url) {
+    res.status(400);
+    throw new Error('Please provide public_id and url');
+  }
+
+  const user = await User.findById(req.user._id);
+
+  if (user) {
+    // Check if the user already has an avatar and delete the old one
+    if (user.avatar && user.avatar.public_id) {
+      await deleteFromCloudinary(user.avatar.public_id);
+    }
+
+    // Update with the new avatar info
+    user.avatar = { public_id, url };
+    await user.save();
+    
+    res.status(200).json({
+      message: 'Avatar updated successfully',
+      avatar: user.avatar,
+    });
+  } else {
+    res.status(404);
+    throw new Error('User not found');
+  }
+});
+
+
+module.exports = { getUsers, getUserById, updateUser, toggleMfaStatus, deleteUser, updateUserAvatar };

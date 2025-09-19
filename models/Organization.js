@@ -5,7 +5,10 @@ const OrganizationSchema = new mongoose.Schema({
     slug: { type: String, required: true, unique: true, lowercase: true, trim: true, index: true },
     description: { type: String, trim: true },
     industry: { type: String, trim: true },
-    logo: { url: String, publicId: String },
+    logo: {
+        public_id: { type: String },
+        url: { type: String }
+    },
     website: { type: String, trim: true },
     address: { street: String, city: String, state: String, zip: String, country: String },
     phoneNumber: { type: Number, trim: true },
@@ -65,6 +68,13 @@ planLimits: {
 },
 
 { timestamps: true });
+
+OrganizationSchema.pre('deleteOne', { document: true, query: false }, async function(next) {
+    if (this.logo && this.logo.public_id) {
+        await deleteFromCloudinary(this.logo.public_id);
+    }
+    next();
+});
 
 const Organization = mongoose.model('Organization', OrganizationSchema);
 module.exports = Organization;
