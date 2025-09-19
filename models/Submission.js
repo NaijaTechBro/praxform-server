@@ -18,7 +18,6 @@ const SubmissionSchema = new mongoose.Schema({
     expiresAt: { type: Date }
 }, { timestamps: true });
 
-// TTL index for auto-deletion of submissions
 SubmissionSchema.index({ "expiresAt": 1 }, { expireAfterSeconds: 0 });
 
 const Submission = mongoose.model('Submission', SubmissionSchema);

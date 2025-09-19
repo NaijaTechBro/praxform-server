@@ -45,7 +45,7 @@ UserSchema.methods.matchPassword = async function(enteredPassword) {
     if (this.passwordHash) {
         return await bcrypt.compare(enteredPassword, this.passwordHash);
     }
-    return false; // If no passwordHash, cannot match
+    return false;
 };
 
 const User = mongoose.model('User', UserSchema);

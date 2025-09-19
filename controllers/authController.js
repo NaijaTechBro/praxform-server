@@ -7,7 +7,6 @@ const crypto = require('crypto');
 const createNotification = require('../utils/createNotification');
 const sendEmail = require('../utils/email/sendEmail');
 
-// Correctly initialize the Google OAuth2 Client with the Redirect URI
 const googleClient = new OAuth2Client(
     process.env.PRAXFORM_GOOGLE_CLIENT_ID,
     process.env.PRAXFORM_GOOGLE_CLIENT_SECRET,
@@ -21,7 +20,7 @@ const generateSixDigitCode = () => {
 
 // Helper function to parse expiration time from string (e.g., "7d", "15m")
 const parseExpiry = (expiryString) => {
-    if (!expiryString) return 86400000; // Default to 1 day if undefined
+    if (!expiryString) return 86400000; 
     const num = parseInt(expiryString);
     const unit = expiryString.slice(-1);
     switch (unit) {
@@ -103,8 +102,8 @@ const registerUser = asyncHandler(async (req, res) => {
     // --- ROBUST & UNIQUE SLUG GENERATION ---
     const generateUniqueSlug = async (name) => {
         const baseSlug = name.toLowerCase()
-                             .replace(/\s+/g, '-') // Replace spaces with -
-                             .replace(/[^\w\-]+/g, ''); // Remove all non-word chars except -
+                             .replace(/\s+/g, '-') 
+                             .replace(/[^\w\-]+/g, ''); 
         let slug = baseSlug;
         let counter = 1;
         // Append number if slug already exists

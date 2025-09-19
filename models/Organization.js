@@ -1,5 +1,3 @@
-// models/Organization.js
-
 const mongoose = require('mongoose');
 
 const OrganizationSchema = new mongoose.Schema({
@@ -31,11 +29,11 @@ const OrganizationSchema = new mongoose.Schema({
     default: 'starter',
 },
 // Payment details
-subscriptionId: { // From Stripe
+subscriptionId: { 
     type: String,
     default: null,
 },
-customerId: { // From Stripe
+customerId: { 
     type: String,
     default: null,
 },
@@ -44,11 +42,11 @@ subscriptionStatus: {
     enum: ['active', 'canceled', 'incomplete', 'past_due', null],
     default: null,
 },
-currentPeriodEnd: { // From Stripe
+currentPeriodEnd: { 
     type: Date,
     default: null,
 },
-// Add plan limits to the model for easy checking
+
 planLimits: {
     maxTeamMembers: { type: Number, default: 1 },
     maxForms: { type: Number, default: 5 },

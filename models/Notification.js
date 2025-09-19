@@ -33,7 +33,7 @@ const NotificationSchema = new mongoose.Schema({
     },
     link: { 
         type: String 
-    }, // e.g., /forms/formId/submissions/submissionId
+    },
     isRead: { 
         type: Boolean, 
         default: false 

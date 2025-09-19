@@ -412,6 +412,26 @@ const deleteSubmission = asyncHandler(async (req, res) => {
     }
 });
 
+// @desc      Logs when a user views a submission's details
+// @route     POST /api/v1/submissions/:id/log-view
+// @access    Private
+const logSubmissionView = asyncHandler(async (req, res) => {
+    const submission = await Submission.findById(req.params.id);
+    if (!submission || submission.organization.toString() !== req.user.currentOrganization.toString()) {
+        res.status(404);
+        throw new Error('Submission not found');
+    }
+    const form = await Form.findById(submission.form).select('name');
+    if (form) {
+        res.locals.auditDetails = {
+            formName: form.name,
+            submissionId: submission._id.toString()
+        };
+    }
+    res.status(200).json({ message: 'View event acknowledged.' });
+});
+
+
 // @desc      Confirms access for a download, allowing the audit middleware to log the event
 // @route     POST /api/v1/submissions/:id/log-download
 // @access    Private
@@ -441,5 +461,6 @@ module.exports = {
     getSubmissionsByForm, 
     getSubmissionById, 
     deleteSubmission,
+    logSubmissionView,
     logSubmissionDownload 
 };

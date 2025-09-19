@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-// --- Import the new function ---
+
 const { 
     getOrganizationById, 
     updateOrganization, 
