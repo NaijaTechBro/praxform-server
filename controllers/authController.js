@@ -64,6 +64,8 @@ const sendTokenResponse = async (user, statusCode, res) => {
             lastName: populatedUser.lastName,
             email: populatedUser.email,
             currentOrganization: populatedUser.currentOrganization,
+            avatar: populatedUser.avatar
+
         },
         accessToken,
     });
@@ -406,7 +408,8 @@ const getMe = asyncHandler(async (req, res) => {
             email: user.email,
             currentOrganization: user.currentOrganization,
             preferences: user.preferences,
-            mfaEnabled: user.mfaEnabled
+            mfaEnabled: user.mfaEnabled,
+            avatar: user.avatar
         });
     } else {
         res.status(404);
