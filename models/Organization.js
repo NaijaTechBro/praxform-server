@@ -58,12 +58,14 @@ planLimits: {
 },
     apiKeys: [{
         name: String,
-        key: String, 
+        publicKey: { type: String, required: true },
+        secretKeyHash: { type: String, required: true },
         permissions: [String],
         lastUsed: Date,
         createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         expiresAt: Date
-    }],
+   }],
+
     webhooks: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Webhook' }]
 },
 
