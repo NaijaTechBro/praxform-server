@@ -8,10 +8,10 @@ const {
     getPostByIdAdmin, // Import this
     updatePost,
     deletePost,
-} = require('../controllers/blogController');
+} = require('../controllers/admin/blogController');
 
 const { protect } = require('../middleware/authMiddleware');
-const authorize = require('../middleware/authorize');
+const authorize = require('../middleware/authorizeMiddleware');
 
 // --- Public Routes (Simplified) ---
 router.route('/').get(getPublishedPosts);

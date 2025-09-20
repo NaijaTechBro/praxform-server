@@ -12,6 +12,11 @@ const UserSchema = new mongoose.Schema({
         public_id: { type: String },
         url: { type: String }
     },
+     role: {
+        type: String,
+        enum: ['user', 'superadmin'],
+        default: 'user'
+    },
     isEmailVerified: { type: Boolean, default: false },
     isPhoneVerified: { type: Boolean, default: false },
     mfaEnabled: { type: Boolean, default: false },

@@ -1,5 +1,5 @@
 const asyncHandler = require('express-async-handler');
-const BlogPost = require('../models/BlogPost');
+const BlogPost = require('../../models/BlogPost');
 
 // --- PUBLIC CONTROLLERS ---
 
