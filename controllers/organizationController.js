@@ -42,18 +42,19 @@ const updateOrganization = asyncHandler(async (req, res) => {
         throw new Error('User does not have permission to update this organization');
     }
 
-    const { name, description, industry, website, phoneNumber, email, address, callbackUrl } = req.body;
-
-    organization.name = name ?? organization.name;
-    organization.description = description ?? organization.description;
-    organization.industry = industry ?? organization.industry;
-    organization.website = website ?? organization.website;
-    organization.phoneNumber = phoneNumber ?? organization.phoneNumber;
-    organization.email = email ?? organization.email;
-    organization.callbackUrl = callbackUrl ?? organization.callbackUrl;
+    if (req.body.name) organization.name = req.body.name;
+    if (req.body.description) organization.description = req.body.description;
+    if (req.body.industry) organization.industry = req.body.industry;
+    if (req.body.website) organization.website = req.body.website;
+    if (req.body.phoneNumber) organization.phoneNumber = req.body.phoneNumber;
+    if (req.body.email) organization.email = req.body.email;
     
-    if (address) {
-        organization.address = { ...organization.address, ...address };
+    if (req.body.callbackUrl !== undefined) {
+        organization.callbackUrl = req.body.callbackUrl;
+    }
+    
+    if (req.body.address) {
+        organization.address = { ...organization.address, ...req.body.address };
     }
 
     const updatedOrganization = await organization.save();
