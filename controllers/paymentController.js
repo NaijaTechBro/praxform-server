@@ -45,8 +45,8 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
         mode: 'subscription',
         customer: customerId,
         line_items: [{ price: priceId, quantity: 1 }],
-        success_url: `${process.env.CLIENT_URL}/settings/billing?success=true`,
-        cancel_url: `${process.env.CLIENT_URL}/settings/billing?canceled=true`,
+        success_url: `${process.env.CLIENT_URL}/settings?tab=billing&success=true`,
+        cancel_url: `${process.env.CLIENT_URL}/settings?tab=billing&canceled=true`,
         metadata: { organizationId: organizationId.toString(), userId: user._id.toString() }
     });
     res.status(200).json({ success: true, url: session.url });
@@ -58,7 +58,7 @@ const getCustomerPortal = asyncHandler(async (req, res) => {
     if (!organization || !organization.customerId) { res.status(400); throw new Error('Customer ID not found for this organization.'); }
     const portalSession = await stripe.billingPortal.sessions.create({
         customer: organization.customerId,
-        return_url: `${process.env.CLIENT_URL}/settings/billing`,
+        return_url: `${process.env.CLIENT_URL}/settings?tab=billing`,
     });
     res.status(200).json({ success: true, url: portalSession.url });
 });
@@ -93,7 +93,7 @@ const handleStripeWebhook = asyncHandler(async (req, res) => {
                     currentPeriodEnd: periodEnd, // Use the safe variable
                     planLimits: planDetails.limits,
                 });
-                await createNotification(userId, organizationId, 'plan_upgrade', `Your organization has been successfully upgraded to the ${planDetails.name} plan.`, '/settings/billing');
+                await createNotification(userId, organizationId, 'plan_upgrade', `Your organization has been successfully upgraded to the ${planDetails.name} plan.`, '/settings?tab=billing');
             }
             break;
         }
@@ -121,7 +121,7 @@ const handleStripeWebhook = asyncHandler(async (req, res) => {
                 const ownerMember = organization.members.find(m => m.role === 'owner');
                 if (ownerMember) {
                     const ownerId = ownerMember.userId._id;
-                    await createNotification(ownerId, organization._id, 'payment_failed', 'Your subscription payment failed. Please update your billing information.', '/settings/billing');
+                    await createNotification(ownerId, organization._id, 'payment_failed', 'Your subscription payment failed. Please update your billing information.', '/settings?tab=billing');
                 }
             }
             break;
