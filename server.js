@@ -17,7 +17,8 @@ const formtemplateRoutes = require('./routes/formtemplateRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
-const uploadRoutes = require('./routes/uploadRoutes')
+const uploadRoutes = require('./routes/uploadRoutes');
+const blogRoutes = require('./routes/blogRoutes');
 
 const { handleStripeWebhook } = require('./controllers/paymentController');
 dotenv.config();
@@ -45,6 +46,7 @@ app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/uploads', uploadRoutes);
+app.use('/api/v1/blog/posts', blogRoutes);
 
 // Middleware
 app.use(notFound);
