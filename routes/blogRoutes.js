@@ -10,7 +10,7 @@ const {
 } = require('../controllers/blogController');
 
 const { protect } = require('../middleware/authMiddleware');
-const authorizeMiddleware = require('../middleware/authorizeMiddleware');
+const authorize = require('../middleware/authorizeMiddleware');
 
 // --- Public Routes ---
 router.route('/').get(getPublishedPosts);

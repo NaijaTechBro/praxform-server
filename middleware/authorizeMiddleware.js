@@ -1,7 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const Organization = require('../models/Organization');
 
-const authorizeMiddleware = (...roles) => asyncHandler(async (req, res, next) => {
+const authorize = (...roles) => asyncHandler(async (req, res, next) => {
     if (!req.user || !req.user.currentOrganization) {
         res.status(403);
         throw new Error('Not authorized to access this route');
@@ -22,4 +22,4 @@ const authorizeMiddleware = (...roles) => asyncHandler(async (req, res, next) =>
     next();
 });
 
-module.exports = authorizeMiddleware;
+module.exports = authorize;
