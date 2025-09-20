@@ -5,20 +5,23 @@ const {
     getPostBySlug,
     createPost,
     getAllPostsAdmin,
+    getPostByIdAdmin, // Import this
     updatePost,
     deletePost,
 } = require('../controllers/blogController');
 
 const { protect } = require('../middleware/authMiddleware');
-const authorize = require('../middleware/authorizeMiddleware');
+const authorize = require('../middleware/authorize');
 
-// --- Public Routes ---
+// --- Public Routes (Simplified) ---
 router.route('/').get(getPublishedPosts);
 router.route('/:slug').get(getPostBySlug);
 
 // --- Admin Routes ---
-// These routes require the user to be logged in AND have an 'admin' or 'owner' role.
 router.route('/admin/all').get(protect, authorize('admin', 'owner'), getAllPostsAdmin);
+
+// This route is for the Post Editor to fetch a post's data for editing
+router.route('/admin/:id').get(protect, authorize('admin', 'owner'), getPostByIdAdmin);
 
 router.route('/admin')
     .post(protect, authorize('admin', 'owner'), createPost);

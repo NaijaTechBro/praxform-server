@@ -15,7 +15,7 @@ const BlogPostSchema = new mongoose.Schema({
         index: true,
     },
     content: {
-        type: String, // We'll store the content as Markdown
+        type: String,
         required: [true, 'Please provide content'],
     },
     featuredImage: {
@@ -39,7 +39,7 @@ const BlogPostSchema = new mongoose.Schema({
         trim: true,
         maxlength: [160, 'Meta description cannot be more than 160 characters'],
     },
-    readingTime: { // In minutes
+    readingTime: {
         type: Number,
         default: 1,
     },
@@ -54,7 +54,6 @@ BlogPostSchema.pre('save', function(next) {
     if (this.isModified('title')) {
         this.slug = slugify(this.title, { lower: true, strict: true });
     }
-    // Calculate reading time (average 200 words per minute)
     if (this.isModified('content')) {
         const wordCount = this.content.split(/\s+/).length;
         this.readingTime = Math.ceil(wordCount / 200);
