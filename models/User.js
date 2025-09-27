@@ -6,8 +6,8 @@ const UserSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true, lowercase: true, trim: true, index: true },
     passwordHash: { type: String, required: function() { return this.authMethod === 'local'; } },
     authMethod: { type: String, enum: ['local', 'google', 'microsoft', 'magic-link'], default: 'local' },
-    firstName: { type: String, required: true, trim: true },
-    lastName: { type: String, required: true, trim: true },
+    firstName: { type: String, required: true },
+    lastName: { type: String, required: false, default: ''  },
      avatar: {
         public_id: { type: String },
         url: { type: String }
