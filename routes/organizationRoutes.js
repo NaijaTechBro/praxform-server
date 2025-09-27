@@ -8,10 +8,15 @@ const {
     inviteMember,
     removeMember,
     updateOrganizationLogo,
+    setupGoogleUser,
 
 } = require('../controllers/organizationController');
-const { protect } = require('../middleware/authMiddleware');
 
+
+const { protect } = require('../middleware/authMiddleware');
+const { verifySetupToken } = require('../middleware/authSetupMiddleware')
+
+router.post('/setup-google-user', verifySetupToken, setupGoogleUser);
 
 router.put('/:id/logo', protect, updateOrganizationLogo);
 
