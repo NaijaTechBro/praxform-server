@@ -7,6 +7,7 @@ const connectDB = require('./config/db');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 const passport = require('passport');
 const session = require('express-session'); 
+const MongoStore = require('connect-mongo'); 
 
 // Route Files
 const authRoutes = require('./routes/authRoutes');
@@ -42,7 +43,11 @@ app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: process.env.NODE_ENV === 'production' }
+    store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }), // Use Mongo for session storage
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 1000 * 60 * 60 * 24 * 7 // Optional: set cookie expiry to 7 days
+    }
 }));
 
 // Initialize Passport
