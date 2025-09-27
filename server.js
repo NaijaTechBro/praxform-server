@@ -1,9 +1,12 @@
-const express = require('express');
 const dotenv = require('dotenv');
+dotenv.config();
+const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
+const passport = require('passport');
+const session = require('express-session'); 
 
 // Route Files
 const authRoutes = require('./routes/authRoutes');
@@ -22,17 +25,29 @@ const blogRoutes = require('./routes/blogRoutes');
 const superAdminRoutes = require('./routes/superAdminRoutes')
 
 const { handleStripeWebhook } = require('./controllers/paymentController');
-dotenv.config();
+require('./config/passport-setup');
 
 connectDB();
 
 const app = express();
+app.set('trust proxy', 1);
 
 app.post('/api/v1/payments/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
 
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors());
+
+app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: process.env.NODE_ENV === 'production' }
+}));
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Mount Routers
 app.use('/api/v1/auth', authRoutes);

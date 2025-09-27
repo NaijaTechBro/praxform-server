@@ -264,86 +264,27 @@ const verifyMfa = asyncHandler(async (req, res) => {
 });
 
 
-
-// @desc      Authenticate with Google
-// @route     POST /api/v1/auth/google
+// @desc      Handle Google OAuth callback and token issuance
+// @route     GET /api/v1/auth/google/callback
 // @access    Public
-const googleAuth = asyncHandler(async (req, res) => {
-    const { code } = req.body;
-    if (!code) {
-        res.status(400);
-        throw new Error("Google authorization code is required");
+const googleAuthCallback = asyncHandler(async (req, res) => {
+    const user = req.user;
+
+    if (user.currentOrganization) {
+        user.lastLogin = new Date();
+        await user.save();
+        await sendTokenResponse(user, 200, res);
+        return;
     }
 
-    try {
-        const { tokens } = await googleClient.getToken(code);
-        const idToken = tokens.id_token;
+    const setupToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+        expiresIn: '15m' 
+    });
 
-        if (!idToken) {
-            res.status(400);
-            throw new Error("Failed to retrieve ID token from Google");
-        }
-        
-        const ticket = await googleClient.verifyIdToken({
-            idToken,
-            audience: process.env.PRAXFORM_GOOGLE_CLIENT_ID,
-        });
-
-        const { email, given_name, family_name } = ticket.getPayload();
-        let user = await User.findOne({ email });
-
-        if (user) {
-            // --- SCENARIO 1: EXISTING USER (SIGN-IN) ---
-            if (user.authMethod !== 'google') {
-                res.status(400);
-                throw new Error(`This email is registered with a different method. Please use ${user.authMethod} to log in.`);
-            }
-            
-            // REVERTED: Log the existing user in directly.
-            await sendTokenResponse(user, 200, res);
-
-        } else {
-            // --- SCENARIO 2: NEW USER (SIGN-UP) ---
-            const organizationName = `${given_name}'s Organization`;
-            const baseSlug = organizationName.toLowerCase().replace(/'/g, '').replace(/\s+/g, '-');
-            const randomSuffix = crypto.randomBytes(4).toString('hex');
-            const uniqueSlug = `${baseSlug}-${randomSuffix}`;
-            
-            const newOrganization = await Organization.create({
-                name: organizationName,
-                slug: uniqueSlug,
-                industry: "Other"
-            });
-            
-            const newUser = await User.create({
-                firstName: given_name,
-                lastName: family_name || '.',
-                email,
-                authMethod: 'google',
-                isEmailVerified: true, 
-                organizations: [newOrganization._id],
-                currentOrganization: newOrganization._id,
-            });
-            
-            newOrganization.members.push({ userId: newUser._id, role: 'owner' });
-            await newOrganization.save();
-
-            // Log the new user in directly.
-            await sendTokenResponse(newUser, 201, res);
-        }
-    } catch (error) {
-        console.error("Error during Google authentication:", error);
-        let message = 'An internal error occurred during Google authentication.';
-        if (error.name === 'ValidationError') {
-            message = 'A required field was missing from the Google profile.';
-        } else if (error.code === 11000) {
-            message = 'An error occurred while creating a unique resource.';
-        }
-        res.status(500);
-        throw new Error(message);
-    }
+    const redirectUrl = `${process.env.PRAXFORM_FRONTEND_HOST}/auth/setup-organization?setup_token=${setupToken}`;
+    
+    res.redirect(redirectUrl);
 });
-
 
 // @desc      Refresh access token
 // @route     POST /api/v1/auth/refresh-token
@@ -545,31 +486,6 @@ const resetPassword = asyncHandler(async (req, res) => {
     await sendTokenResponse(user, 200, res);
 });
 
-// // @desc      Change password for a logged-in user
-// // @route     PUT /api/v1/auth/change-password
-// // @access    Private
-// const changePassword = asyncHandler(async (req, res) => {
-//     const { oldPassword, newPassword } = req.body;
-//     const user = await User.findById(req.user._id);
-
-//     if (!user || !(await user.matchPassword(oldPassword))) {
-//         res.status(401);
-//         throw new Error('Incorrect old password.');
-//     }
-
-//     user.passwordHash = newPassword;
-//     await user.save();
-
-//     const message = "Your account password was successfully changed.";
-//     await createNotification(user._id, user.currentOrganization, 'password_changed', message, '/settings/security');
-
-//     res.status(200).json({ success: true, message: 'Password changed successfully.' });
-// });
-
-
-
-
-
 // @desc      Change password for a logged-in user
 // @route     PUT /api/v1/auth/change-password
 // @access    Private
@@ -618,7 +534,7 @@ module.exports = {
     registerUser,
     loginUser,
     verifyMfa,
-    googleAuth,
+    googleAuthCallback,
     refreshToken,
     logout,
     getMe,

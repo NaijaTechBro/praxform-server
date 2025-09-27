@@ -12,6 +12,11 @@ const UserSchema = new mongoose.Schema({
         public_id: { type: String },
         url: { type: String }
     },
+    googleId: {
+        type: String,
+        unique: true,
+        sparse: true
+    },
      role: {
         type: String,
         enum: ['user', 'superadmin'],
