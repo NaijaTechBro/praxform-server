@@ -46,6 +46,7 @@ app.use(session({
     store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }), // Use Mongo for session storage
     cookie: {
         secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
         maxAge: 1000 * 60 * 60 * 24 * 7 // Optional: set cookie expiry to 7 days
     }
 }));
