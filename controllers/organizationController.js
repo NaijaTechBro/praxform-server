@@ -10,10 +10,10 @@ const sendEmail = require('../utils/email/sendEmail');
 const { sendTokenResponse } = require('../utils/tokenUtils');
 
 const setupGoogleUser = asyncHandler(async (req, res) => {
-    const { name, industry } = req.body.organization;
+    const { name, industry, website, phoneNumber, address } = req.body.organization;
     const userId = req.user._id;
 
-    if (!name || !industry) {
+    if (!name || !industry || !website || !phoneNumber || !address || !address.street || !address.city || !address.country) {
         res.status(400);
         throw new Error('Please provide all required organization fields.');
     }
@@ -37,6 +37,9 @@ const setupGoogleUser = asyncHandler(async (req, res) => {
         name,
         industry,
         slug,
+        website,
+        phoneNumber,
+        address,
         members: [{ userId: user._id, role: 'owner' }]
     });
 

@@ -15,7 +15,7 @@ const generateSixDigitCode = () => {
 const registerUser = asyncHandler(async (req, res) => {
     const { firstName, lastName, email, password, organization } = req.body;
 
-    if (!email || !password || !firstName || !lastName || !organization || !organization.name || !organization.industry) {
+    if (!email || !password || !firstName || !lastName || !organization || !organization.name || !organization.industry || !organization.website || !organization.phoneNumber || !organization.address) {
         res.status(400);
         throw new Error('Please provide all required user and organization fields.');
     }
@@ -38,6 +38,9 @@ const registerUser = asyncHandler(async (req, res) => {
         name: organization.name,
         slug: slug,
         industry: organization.industry,
+        website: organization.website,
+        phoneNumber: organization.phoneNumber,
+        address: organization.address,
     });
 
     const verificationCode = generateSixDigitCode();
