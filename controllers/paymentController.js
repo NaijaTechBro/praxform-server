@@ -22,6 +22,11 @@ const PLANS = {
     },
 };
 
+
+const getPublicPlans = asyncHandler(async (req, res) => {
+    res.status(200).json({ success: true, data: Object.values(PLANS) });
+});
+
 const getPlans = asyncHandler(async (req, res) => {
     res.status(200).json({ success: true, data: Object.values(PLANS) });
 });
@@ -169,6 +174,7 @@ const handleStripeWebhook = asyncHandler(async (req, res) => {
 
 module.exports = {
     getPlans,
+    getPublicPlans,
     createCheckoutSession,
     getCustomerPortal,
     handleStripeWebhook

@@ -23,7 +23,8 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const blogRoutes = require('./routes/blogRoutes');
-const superAdminRoutes = require('./routes/superAdminRoutes')
+const superAdminRoutes = require('./routes/superAdminRoutes');
+const publicRoutes = require('./routes/publicRoutes');
 
 const { handleStripeWebhook } = require('./controllers/paymentController');
 require('./config/passport-setup');
@@ -43,11 +44,11 @@ app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }), // Use Mongo for session storage
+    store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
     cookie: {
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
-        maxAge: 1000 * 60 * 60 * 24 * 7 // Optional: set cookie expiry to 7 days
+        maxAge: 1000 * 60 * 60 * 24 * 7
     }
 }));
 
@@ -74,6 +75,7 @@ app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/uploads', uploadRoutes);
 app.use('/api/v1/blog/posts', blogRoutes);
 app.use('/api/v1/superadmin', superAdminRoutes);
+app.use('/api/v1/public', publicRoutes);
 
 // Middleware
 app.use(notFound);

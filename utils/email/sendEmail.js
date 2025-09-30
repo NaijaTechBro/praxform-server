@@ -10,12 +10,7 @@ const sendEmail = async (options) => {
         sent_from,
         reply_to,
         template,
-        name,
-        code,
-        link,
-        date,
-        organizationName,
-        inviterName
+        ...context
     } = options;
 
     // Validate template parameter
@@ -55,15 +50,8 @@ const sendEmail = async (options) => {
         to: send_to,
         replyTo: reply_to,
         subject: subject,
-        template: template, // e.g., "welcome"
-        context: {
-            name,
-            code,
-            link,
-            date,
-            organizationName,
-            inviterName
-        },
+        template: template,
+        context: context,
     };
 
     // Return a promise for better error handling
