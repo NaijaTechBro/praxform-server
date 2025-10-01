@@ -1,7 +1,13 @@
+//middleware/authorizeMiddleware.js
 const asyncHandler = require('express-async-handler');
 const Organization = require('../models/Organization');
 
 const authorize = (...roles) => asyncHandler(async (req, res, next) => {
+    // ✨ Add this bypass at the top
+    if (req.user && req.user.role === 'superadmin') {
+        return next();
+    }
+
     if (!req.user || !req.user.currentOrganization) {
         res.status(403);
         throw new Error('Not authorized to access this route');
@@ -16,7 +22,8 @@ const authorize = (...roles) => asyncHandler(async (req, res, next) => {
     const member = organization.members.find(m => m.userId.equals(req.user._id));
     if (!member || !roles.includes(member.role)) {
         res.status(403);
-        throw new Error(`User role '${member.role}' is not authorized to access this route`);
+        const userRole = member ? member.role : 'none';
+        throw new Error(`User role '${userRole}' is not authorized to access this route`);
     }
 
     next();

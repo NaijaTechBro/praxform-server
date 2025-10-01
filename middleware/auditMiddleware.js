@@ -10,7 +10,7 @@ const audit = (action, resourceType) => asyncHandler(async (req, res, next) => {
                 body: req.body,
                 params: req.params,
                 query: req.query,
-                ...(res.locals.auditDetails || {}) // Merge details from the controller
+                ...(res.locals.auditDetails || {}) 
             };
             let resourceId = req.params.id || (req.body && req.body.formId);
             let failureReason = null;

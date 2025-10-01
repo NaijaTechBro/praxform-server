@@ -11,6 +11,7 @@ const MongoStore = require('connect-mongo');
 
 // Route Files
 const authRoutes = require('./routes/authRoutes');
+const mfaRoutes = require('./routes/mfaRoutes');
 const userRoutes = require('./routes/userRoutes');
 const organizationRoutes = require('./routes/organizationRoutes');
 const formRoutes = require('./routes/formRoutes');
@@ -62,6 +63,7 @@ app.use(passport.session());
 
 // Mount Routers
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/mfa', mfaRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/organizations', organizationRoutes);
 app.use('/api/v1/forms', formRoutes);
