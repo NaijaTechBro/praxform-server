@@ -60,7 +60,6 @@ const createForm = asyncHandler(async (req, res) => {
 const sendForm = asyncHandler(async (req, res) => {
     const { recipients, message, oneTimeUse, smsCode, emailAuth, dueDate } = req.body;
     
-    // FIX 1: Populate createdBy to get the sender's full details
     const form = await Form.findById(req.params.id).populate({
         path: 'createdBy',
         select: 'firstName lastName email'
@@ -76,7 +75,6 @@ const sendForm = asyncHandler(async (req, res) => {
         const sendPromises = recipients.map(async (recipient) => {
             const uniqueAccessCode = crypto.randomBytes(16).toString('hex');
             
-            // FIX 2: Allow re-sending to existing recipients by updating their code and status
             const recipientIndex = form.recipients.findIndex(r => r.email === recipient.email);
 
             if (recipientIndex > -1) {
@@ -124,7 +122,6 @@ const sendForm = asyncHandler(async (req, res) => {
         form.settings.requireEmailAuth = emailAuth;
         form.settings.dueDate = dueDate;
 
-        // --- FIX 3: Set status to 'active' after sending ---
         form.status = 'active';
         await form.save();
 
