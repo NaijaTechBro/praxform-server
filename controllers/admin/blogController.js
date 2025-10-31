@@ -15,6 +15,26 @@ const getPublishedPosts = asyncHandler(async (req, res) => {
     res.status(200).json({ success: true, data: posts });
 });
 
+// Add this with your other controller functions
+
+/**
+ * @desc      Get the latest published blog post
+ * @route     GET /api/v1/blog/posts/latest
+ * @access    Public
+ */
+const getLatestPublishedPost = asyncHandler(async (req, res) => {
+  const post = await BlogPost.findOne({ status: 'published' })
+    .sort({ createdAt: -1 })
+    .populate('author', 'firstName lastName');
+
+  if (!post) {
+    // It's not an error if no post is found, just return empty
+    return res.status(200).json({ success: true, data: null });
+  }
+
+  res.status(200).json({ success: true, data: post });
+});
+
 /**
  * @desc      Get a single published blog post by its slug
  * @route     GET /api/v1/blog/posts/:slug
@@ -121,4 +141,5 @@ module.exports = {
     getPostByIdAdmin,
     updatePost,
     deletePost,
+    getLatestPublishedPost,
 };

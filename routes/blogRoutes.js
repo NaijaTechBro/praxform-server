@@ -5,7 +5,8 @@ const {
     getPostBySlug,
     createPost,
     getAllPostsAdmin,
-    getPostByIdAdmin, // Import this
+    getPostByIdAdmin,
+    getLatestPublishedPost, // Import this
     updatePost,
     deletePost,
 } = require('../controllers/admin/blogController');
@@ -16,6 +17,7 @@ const authorize = require('../middleware/authorizeMiddleware');
 // --- Public Routes (Simplified) ---
 router.route('/').get(getPublishedPosts);
 router.route('/:slug').get(getPostBySlug);
+router.get('/latest', getLatestPublishedPost);
 
 // --- Admin Routes ---
 router.route('/admin/all').get(protect, authorize('admin', 'owner'), getAllPostsAdmin);
