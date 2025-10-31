@@ -75,7 +75,7 @@ app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/uploads', uploadRoutes);
-app.use('/api/v1/blog/posts', blogRoutes);
+app.use('/api/v1/blog', blogRoutes);
 app.use('/api/v1/superadmin', superAdminRoutes);
 app.use('/api/v1/public', publicRoutes);
 
