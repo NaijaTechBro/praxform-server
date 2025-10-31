@@ -6,6 +6,7 @@ const Form = require('../models/Form');
 const createNotification = require('../utils/createNotification');
 const triggerWebhook = require('../utils/triggerWebhook');
 const sendEmail = require('../utils/email/sendEmail');
+const sendSms = require('../utils/sendSms');
 
 // Helper to generate a 6-digit numeric code
 const generateSixDigitCode = () => Math.floor(100000 + Math.random() * 900000).toString();
@@ -50,8 +51,14 @@ const getPublicFormByAccessCode = asyncHandler(async (req, res) => {
             });
         }
         
-        if (form.settings.requireSmsAuth) {
-            console.log(`SMS to ${recipient.phone}: Your code is ${verificationCode}`);
+        if (form.settings.requireSmsAuth && recipient.phone) {
+            const messageBody = `Your PraxForm verification code is: ${verificationCode}`;
+            try {
+                await sendSms(recipient.phone, messageBody);
+            } catch (error) {
+                res.status(500);
+                throw new Error('Could not send SMS verification code. Please try again later.');
+            }
         }
 
         res.status(200).json({ verificationRequired: true, recipientEmail: recipient.email });
