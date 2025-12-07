@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const createNotification = require('../utils/createNotification');
 const triggerWebhook = require('../utils/triggerWebhook');
-const sendEmail = require('../utils/email/sendEmail');
+const { sendEmail } = require('../utils/email/sendEmail');
 const { sendTokenResponse } = require('../utils/tokenUtils');
 
 const setupGoogleUser = asyncHandler(async (req, res) => {
