@@ -437,25 +437,44 @@ const verifyEmail = asyncHandler(async (req, res) => {
     res.status(200).json({ success: true, message: 'Email verified successfully.' });
 });
 
-
 const forgotPassword = asyncHandler(async (req, res) => {
-    const user = await User.findOne({ email: req.body.email });
+    const { email } = req.body;
+    
+    // 1. Find the user
+    // We select +lockUntil to ensure we don't spam locked accounts
+    const user = await User.findOne({ email }).select('+lockUntil');
+
     if (!user) {
-        res.status(404);
-        throw new Error('User not found.');
+        // Security Best Practice: Always return 200 even if user doesn't exist
+        // to prevent email enumeration attacks.
+        return res.status(200).json({ 
+            success: true, 
+            message: 'If an account with that email exists, a password reset link has been sent.' 
+        });
     }
 
-    if (user.authMethod !== 'local') {
-        res.status(400);
-        throw new Error(`This account is managed by ${user.authMethod}. Password cannot be reset here.`);
+    // --- REMOVED: The block that prevented Google users from resetting password ---
+    /* if (user.authMethod !== 'local') {
+       throw new Error(...)
+    }
+    */
+
+    // 2. Check if account is locked (Security)
+    if (user.lockUntil && user.lockUntil > Date.now()) {
+        res.status(423);
+        const minutesLeft = Math.ceil((user.lockUntil.getTime() - Date.now()) / (60 * 1000));
+        throw new Error(`Account locked due to too many failed attempts. Try again in ${minutesLeft} minutes.`);
     }
     
+    // 3. Generate Reset Token
     const resetToken = crypto.randomBytes(20).toString('hex');
     user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    user.resetPasswordExpires = Date.now() + 3600000;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 Hour
     await user.save();
 
+    // 4. Send Email
     const resetUrl = `${process.env.PRAXFORM_FRONTEND_HOST}/reset-password/${resetToken}`;
+    
     try {
         await sendEmail({
             subject: "Password Reset Request",
@@ -466,13 +485,16 @@ const forgotPassword = asyncHandler(async (req, res) => {
             name: user.firstName,
             link: resetUrl
         });
-        res.json({ success: true, message: 'Password reset link sent.' });
+
+        res.json({ success: true, message: 'If an account with that email exists, a password reset link has been sent.' });
     } catch (err) {
         user.resetPasswordToken = undefined;
         user.resetPasswordExpires = undefined;
         await user.save();
+        
+        console.error("Password reset email failed:", err);
         res.status(500);
-        throw new Error('Email could not be sent.');
+        throw new Error('Email could not be sent. Please try again later.');
     }
 });
 
