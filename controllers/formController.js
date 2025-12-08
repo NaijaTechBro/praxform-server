@@ -3,7 +3,7 @@ const Form = require('../models/Form');
 const Organization = require('../models/Organization');
 const crypto = require('crypto');
 const { deleteFromCloudinary } = require('../utils/cloudinary');
-const sendEmail = require('../utils/email/sendEmail');
+const { sendEmail } = require('../utils/email/sendEmail');
 const triggerWebhook = require('../utils/triggerWebhook');
 const createNotification = require('../utils/createNotification');
 

@@ -1,148 +1,147 @@
 const SibApiV3Sdk = require('sib-api-v3-sdk');
+const nodemailer = require('nodemailer');
 const handlebars = require('handlebars');
 const fs = require('fs');
 const path = require('path');
+const Settings = require('../../models/Settings');
+const Mailjet = require('node-mailjet');
 
-// Helper function to read an email template and compile it with Handlebars
+// --- Helper: Render Templates ---
 const renderTemplate = (templateName, data) => {
-    try {
-        const filePath = path.join(__dirname, `../../emails/${templateName}.handlebars`);
-        const source = fs.readFileSync(filePath, 'utf-8').toString();
-        const template = handlebars.compile(source);
-        // Add current year to all templates for the footer
-        const dataWithYear = { ...data, currentYear: new Date().getFullYear() };
-        return template(dataWithYear);
-    } catch (error) {
-        console.error(`Error rendering email template: ${templateName}`, error);
-        throw new Error('Could not render email template.');
-    }
+    const filePath = path.join(__dirname, `../emails/${templateName}.handlebars`);
+    const source = fs.readFileSync(filePath, 'utf-8').toString();
+    const template = handlebars.compile(source);
+    const dataWithYear = { ...data, currentYear: new Date().getFullYear() };
+    return template(dataWithYear);
 };
 
-const sendEmail = async (options) => {
-    const { subject, send_to, sent_from, reply_to, template, ...context } = options;
-
-    if (!template) {
-        console.error("Email template name is required!");
-        throw new Error("Email template name is required!");
-    }
-    if (!process.env.BREVO_API_KEY) {
-        console.error("Brevo API key is missing from environment variables.");
-        throw new Error("Email service is not configured.");
-    }
-
-    // --- Configure Brevo API Client ---
+// --- Service 1: Brevo ---
+const sendEmailWithBrevo = async (options) => {
     const defaultClient = SibApiV3Sdk.ApiClient.instance;
     const apiKey = defaultClient.authentications['api-key'];
     apiKey.apiKey = process.env.BREVO_API_KEY;
+
     const tranEmailApi = new SibApiV3Sdk.TransactionalEmailsApi();
-
-    // --- Prepare Email Details ---
-    // Brevo requires name and email to be separate
-    const sender = {
-        email: sent_from.match(/<(.*)>/)[1], // Extracts email from "Name <email@example.com>"
-        name: sent_from.replace(/ <.*>/, ''),
-    };
-    const receivers = [{ email: send_to }];
     
-    // Render the HTML content from your .handlebars file
-    const htmlContent = renderTemplate(template, context);
+    // Parse "Name <email>" format
+    const match = options.sent_from.match(/(.*) <(.*)>/);
+    const sender = {
+        name: match ? match[1].trim() : options.sent_from.replace(/ <.*>/, ''),
+        email: match ? match[2].trim() : options.sent_from.match(/<(.*)>/)[1],
+    };
 
-    console.log(`📧 Sending email via Brevo to: ${send_to}`);
+    const htmlContent = renderTemplate(options.template, {
+        name: options.name,
+        link: options.link,
+        ...options // Pass extra data like 'code'
+    });
 
-    // --- Send the Email ---
+    console.log(`📧 [Brevo] Sending to: ${options.send_to}`);
+
+    await tranEmailApi.sendTransacEmail({
+        sender,
+        to: [{ email: options.send_to }],
+        subject: options.subject,
+        replyTo: { email: options.reply_to },
+        htmlContent: htmlContent,
+    });
+};
+
+// --- Service 2: Nodemailer ---
+const sendEmailWithNodemailer = async (options) => {
+    const transporter = nodemailer.createTransport({
+        host: process.env.PRAXFORM_EMAIL_HOST,
+        port: process.env.PRAXFORM_EMAIL_PORT,
+        secure: true,
+        auth: {
+            user: process.env.PRAXFORM_EMAIL_USER,
+            pass: process.env.PRAXFORM_EMAIL_PASS,
+        },
+    });
+
+    const htmlContent = renderTemplate(options.template, {
+        name: options.name,
+        link: options.link,
+        ...options
+    });
+
+    console.log(`📧 [Nodemailer] Sending to: ${options.send_to}`);
+
+    await transporter.sendMail({
+        from: options.sent_from,
+        to: options.send_to,
+        replyTo: options.reply_to,
+        subject: options.subject,
+        html: htmlContent,
+    });
+};
+
+// --- Service 3: Mailjet ---
+const sendEmailWithMailjet = async (options) => {
     try {
-        const result = await tranEmailApi.sendTransacEmail({
-            sender,
-            to: receivers,
-            subject,
-            replyTo: { email: reply_to },
-            htmlContent: htmlContent,
+        const mailjetClient = Mailjet.apiConnect(
+            process.env.MAILJET_API_KEY, 
+            process.env.MAILJET_SECRET_KEY
+        );
+
+        const match = options.sent_from.match(/(.*) <(.*)>/);
+        const fromName = match ? match[1].trim() : "Praxform Team";
+        const fromEmail = match ? match[2].trim() : options.sent_from;
+        
+        const htmlContent = renderTemplate(options.template, {
+            name: options.name,
+            link: options.link,
+            ...options
         });
-        console.log('Email sent successfully via Brevo API:', result);
-        return result;
+
+        console.log(`📧 [Mailjet] Sending to: ${options.send_to}`);
+
+        const result = await mailjetClient.post('send', { version: 'v3.1' }).request({
+            Messages: [
+                {
+                    From: { Email: fromEmail, Name: fromName },
+                    To: [{ Email: options.send_to }],
+                    Subject: options.subject,
+                    HTMLPart: htmlContent,
+                    Headers: { 'Reply-To': options.reply_to },
+                },
+            ],
+        });
+
+        if (result.response.status !== 200 && result.response.status !== 201) {
+             throw new Error(`Mailjet status: ${result.response.status}`);
+        }
     } catch (error) {
-        console.error('Brevo API Error:', error.response?.text || error.message);
-        throw new Error('Failed to send email via Brevo API.');
+        console.error("MAILJET ERROR:", error.message);
+        throw error;
     }
 };
 
-module.exports = sendEmail;
+// --- Main Export with Auto-Initialization ---
+const sendEmail = async (options) => {
+    // 1. Fetch settings
+    let currentSettings = await Settings.findOne({ singleton: 'main_settings' });
 
+    // 2. SELF-HEALING: If missing, create it immediately.
+    // This fixes the "Missing DB" issue and ensures Mailjet is the default.
+    if (!currentSettings) {
+        console.log("⚠️ Settings collection not found. Creating default 'mailjet' configuration...");
+        currentSettings = await Settings.create({
+            singleton: 'main_settings',
+            emailProvider: 'mailjet' 
+        });
+    }
 
+    const provider = currentSettings.emailProvider;
+    console.log(`⚙️ Using Email Provider: ${provider.toUpperCase()}`);
 
+    if (provider === 'mailjet') {
+        return sendEmailWithMailjet(options);
+    } else if (provider === 'brevo') {
+        return sendEmailWithBrevo(options);
+    } else {
+        return sendEmailWithNodemailer(options);
+    }
+};
 
-
-// const nodemailer = require('nodemailer');
-// const hbs = require('nodemailer-express-handlebars').default;
-// const path = require('path');
-
-// const sendEmail = async (options) => {
-//     // Extract all properties from options objects
-//     const {
-//         subject,
-//         send_to,
-//         sent_from,
-//         reply_to,
-//         template,
-//         ...context
-//     } = options;
-
-//     // Validate template parameter
-//     if (!template) {
-//         console.error("Email template name is required!");
-//         return false;
-//     }
-
-//     const transporter = nodemailer.createTransport({
-//         host: process.env.PRAXFORM_EMAIL_HOST,
-//         port: process.env.PRAXFORM_EMAIL_PORT,
-//         auth: {
-//             user: process.env.PRAXFORM_EMAIL_USER,
-//             pass: process.env.PRAXFORM_EMAIL_PASS,
-//         },
-//         tls: {
-//             rejectUnauthorized: false,
-//         },
-//     });
-
-//     const handlebarOptions = {
-//         viewEngine: {
-//             extname: '.handlebars',
-//             partialsDir: path.resolve('./emails'),
-//             defaultLayout: false,
-//         },
-//         viewPath: path.resolve('./emails'),
-//         extName: '.handlebars',
-//     };
-
-//     console.log("📧 Using email template:", template);
-
-//     transporter.use('compile', hbs(handlebarOptions));
-
-//     const mailOptions = {
-//         from: sent_from,
-//         to: send_to,
-//         replyTo: reply_to,
-//         subject: subject,
-//         template: template,
-//         context: context,
-//     };
-
-//     // Return a promise for better error handling
-//     return new Promise((resolve, reject) => {
-//         transporter.sendMail(mailOptions, function (err, info) {
-//             if (err) {
-//                 console.log('Email sending failed:', err);
-//                 reject(err);
-//             } else {
-//                 console.log('Email sent:', info.response);
-//                 resolve(info);
-//             }
-//         });
-//     });
-// };
-
-// module.exports = sendEmail;
-
-
-
+module.exports = { sendEmail };

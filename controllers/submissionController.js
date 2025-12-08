@@ -5,7 +5,7 @@ const Submission = require('../models/Submission');
 const Form = require('../models/Form');
 const createNotification = require('../utils/createNotification');
 const triggerWebhook = require('../utils/triggerWebhook');
-const sendEmail = require('../utils/email/sendEmail');
+const { sendEmail } = require('../utils/email/sendEmail');
 const sendSms = require('../utils/sendSms');
 
 // Helper to generate a 6-digit numeric code

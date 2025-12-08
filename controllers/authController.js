@@ -1,469 +1,95 @@
-// const asyncHandler = require('express-async-handler');
-// const User = require('../models/User');
-// const Organization = require('../models/Organization');
-// const jwt = require('jsonwebtoken');
-// const crypto = require('crypto');
-// const createNotification = require('../utils/createNotification');
-// const sendEmail = require('../utils/email/sendEmail');
-// const { sendTokenResponse } = require('../utils/tokenUtils');
-// const { generateTokens } = require('../utils/generateTokens');
-
-// const generateSixDigitCode = () => {
-//     return Math.floor(100000 + Math.random() * 900000).toString();
-// };
-
-// const registerUser = asyncHandler(async (req, res) => {
-//     const { firstName, lastName, email, password, organization } = req.body;
-
-//     if (!email || !password || !firstName || !lastName || !organization || !organization.name || !organization.industry || !organization.website || !organization.phoneNumber || !organization.address) {
-//         res.status(400);
-//         throw new Error('Please provide all required user and organization fields.');
-//     }
-
-//     const userExists = await User.findOne({ email });
-//     if (userExists) {
-//         res.status(400);
-//         throw new Error('User with this email already exists.');
-//     }
-
-//     const baseSlug = organization.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '');
-//     let slug = baseSlug;
-//     let counter = 1;
-//     while (await Organization.findOne({ slug })) {
-//         slug = `${baseSlug}-${counter}`;
-//         counter++;
-//     }
-
-//     const newOrganization = await Organization.create({
-//         name: organization.name,
-//         slug: slug,
-//         industry: organization.industry,
-//         website: organization.website,
-//         phoneNumber: organization.phoneNumber,
-//         address: organization.address,
-//     });
-
-//     const verificationCode = generateSixDigitCode();
-//     const emailVerificationCodeHashed = crypto.createHash('sha256').update(verificationCode).digest('hex');
-
-//     const user = await User.create({
-//         firstName,
-//         lastName,
-//         email,
-//         passwordHash: password,
-//         organizations: [newOrganization._id],
-//         currentOrganization: newOrganization._id,
-//         authMethod: 'local',
-//         emailVerificationToken: emailVerificationCodeHashed,
-//         emailVerificationTokenExpires: Date.now() + 3600000
-//     });
-
-//     newOrganization.members.push({ userId: user._id, role: 'owner' });
-//     await newOrganization.save();
-
-//     try {
-//         await sendEmail({
-//             subject: "Verify Your Email for PraxForm",
-//             send_to: user.email,
-//             sent_from: `${process.env.PRAXFORM_FROM_NAME || 'PraxForm Team'} <${process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com'}>`,
-//             reply_to: process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com',
-//             template: "verification",
-//             name: user.firstName,
-//             code: verificationCode
-//         });
-//         res.status(201).json({
-//             success: true,
-//             message: 'User registered successfully. Please check your email for the verification code.'
-//         });
-//     } catch (emailError) {
-//         console.error('Error sending verification email:', emailError);
-//         res.status(500);
-//         throw new Error('User registered but failed to send verification email.');
-//     }
-// });
-
-// const loginUser = asyncHandler(async (req, res) => {
-//     const { email, password } = req.body;
-//     const user = await User.findOne({ email });
-
-//     if (!user || !(await user.matchPassword(password))) {
-//         res.status(401);
-//         throw new Error('Invalid email or password');
-//     }
-
-//     if (user.authMethod !== 'local') {
-//         res.status(401);
-//         throw new Error(`This account uses ${user.authMethod} sign-in. Please use that method to log in.`);
-//     }
-
-//     if (!user.isEmailVerified) {
-//         res.status(401);
-//         throw new Error('Please verify your email address before logging in.');
-//     }
-
-//     if (user.mfaEnabled) {
-//         const code = generateSixDigitCode();
-//         user.loginCode = crypto.createHash('sha256').update(code).digest('hex');
-//         user.loginCodeExpires = Date.now() + 600000;
-//         await user.save();
-
-//         // Logic to email the MFA code...
-//         res.status(200).json({
-//             success: true,
-//             mfaRequired: true,
-//             message: 'MFA is enabled. Please check your email for a login code.'
-//         });
-//     } else {
-//         user.lastLogin = new Date();
-//         await user.save();
-//         await sendTokenResponse(user, 200, res);
-//     }
-// });
-
-// const verifyMfa = asyncHandler(async (req, res) => {
-//     const { email, code } = req.body;
-//     const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
-//     const user = await User.findOne({
-//         email,
-//         loginCode: hashedCode,
-//         loginCodeExpires: { $gt: Date.now() }
-//     });
-
-//     if (!user) {
-//         res.status(401);
-//         throw new Error('Invalid or expired login code.');
-//     }
-
-//     user.loginCode = undefined;
-//     user.loginCodeExpires = undefined;
-//     user.lastLogin = new Date();
-//     await user.save();
-//     await sendTokenResponse(user, 200, res);
-// });
-
-// const googleAuthCallback = asyncHandler(async (req, res) => {
-//     const user = req.user; // This user is attached by Passport
-
-//     if (user.currentOrganization) {
-//         user.lastLogin = new Date();
-//         await user.save();
-//         const { accessToken } = generateTokens(user._id);
-
-//         res.redirect(`${process.env.PRAXFORM_FRONTEND_HOST}/auth/google/callback?token=${accessToken}`);
-
-//     } else {
-//         const setupToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-//             expiresIn: '15m'
-//         });
-        
-//         res.redirect(`${process.env.PRAXFORM_FRONTEND_HOST}/auth/google/callback?setup_token=${setupToken}`);
-//     }
-// });
-
-// const refreshToken = asyncHandler(async (req, res) => {
-//     const { refreshToken: tokenFromCookie } = req.cookies;
-//     if (!tokenFromCookie) {
-//         res.status(401);
-//         throw new Error('No refresh token provided.');
-//     }
-//     try {
-//         const decoded = jwt.verify(tokenFromCookie, process.env.JWT_SECRET);
-//         const user = await User.findById(decoded.id);
-//         if (!user) {
-//             res.status(401);
-//             throw new Error('Invalid token user.');
-//         }
-//         const { accessToken } = generateTokens(user._id);
-//         res.json({ success: true, accessToken });
-//     } catch (err) {
-//         res.status(401);
-//         throw new Error('Refresh token invalid or expired. Please log in again.');
-//     }
-// });
-
-// const logout = asyncHandler(async (req, res) => {
-//     res.cookie('refreshToken', 'none', {
-//         expires: new Date(Date.now() + 10 * 1000),
-//         httpOnly: true,
-//         secure: process.env.NODE_ENV === 'production',
-//         sameSite: 'strict',
-//         path: '/api/v1/auth/refresh-token'
-//     });
-//     res.status(200).json({ success: true, message: 'Logged out successfully' });
-// });
-
-// const getMe = asyncHandler(async (req, res) => {
-//     const user = await User.findById(req.user._id).populate('currentOrganization', 'name logo');
-//     if (user) {
-//         res.json({
-//             _id: user._id,
-//             firstName: user.firstName,
-//             lastName: user.lastName,
-//             email: user.email,
-//             currentOrganization: user.currentOrganization,
-//             preferences: user.preferences,
-//             mfaEnabled: user.mfaEnabled,
-//             avatar: user.avatar
-//         });
-//     } else {
-//         res.status(404);
-//         throw new Error('User not found');
-//     }
-// });
-
-// // @desc      Resend email verification code
-// // @route     POST /api/v1/auth/resend-verification
-// // @access    Public
-// const resendVerification = asyncHandler(async (req, res) => {
-//     const { email } = req.body;
-//     const user = await User.findOne({ email });
-
-//     if (!user) {
-//         res.status(404);
-//         throw new Error('User not found.');
-//     }
-//     if (user.isEmailVerified) {
-//         res.status(400);
-//         throw new Error('Email is already verified.');
-//     }
-
-//     const verificationCode = generateSixDigitCode();
-//     user.emailVerificationToken = crypto.createHash('sha256').update(verificationCode).digest('hex');
-//     user.emailVerificationTokenExpires = Date.now() + 3600000;
-//     await user.save();
-
-//     try {
-//         await sendEmail({
-//             subject: "Verify Your Email for PraxForm",
-//             send_to: user.email,
-//             sent_from: `${process.env.PRAXFORM_FROM_NAME || 'PraxForm Team'} <${process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com'}>`,
-//             reply_to: process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com',
-//             template: "verification",
-//             name: user.firstName,
-//             code: verificationCode
-//         });
-//         res.json({ success: true, message: 'New verification email sent.' });
-//     } catch (err) {
-//         res.status(500);
-//         throw new Error('Email could not be sent.');
-//     }
-// });
-
-// // @desc      Verify user email
-// // @route     GET /api/v1/auth/verifyemail/:code
-// // @access    Public
-// const verifyEmail = asyncHandler(async (req, res) => {
-//     const verificationCodeHashed = crypto.createHash('sha256').update(req.params.code).digest('hex');
-//     const user = await User.findOne({
-//         emailVerificationToken: verificationCodeHashed,
-//         emailVerificationTokenExpires: { $gt: Date.now() }
-//     });
-
-//     if (!user) {
-//         res.status(400);
-//         throw new Error('Invalid or expired verification code.');
-//     }
-
-//     user.isEmailVerified = true;
-//     user.emailVerificationToken = undefined;
-//     user.emailVerificationTokenExpires = undefined;
-//     await user.save();
-    
-//     res.status(200).json({ success: true, message: 'Email verified successfully.' });
-// });
-
-// // @desc      Forgot password
-// // @route     POST /api/v1/auth/forgot-password
-// // @access    Public
-// const forgotPassword = asyncHandler(async (req, res) => {
-//     const user = await User.findOne({ email: req.body.email });
-//     if (!user) {
-//         res.status(404);
-//         throw new Error('User not found.');
-//     }
-
-//       // Ensure user has a local password before sending a reset link
-//     if (user.authMethod !== 'local') {
-//         res.status(400);
-//         throw new Error(`This account is managed by ${user.authMethod}. Password cannot be reset here.`);
-//     }
-    
-//     const resetToken = crypto.randomBytes(20).toString('hex');
-//     user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-//     user.resetPasswordExpires = Date.now() + 3600000;
-//     await user.save();
-
-//     const resetUrl = `${process.env.PRAXFORM_FRONTEND_HOST}/reset-password/${resetToken}`;
-//     try {
-//         await sendEmail({
-//             subject: "Password Reset Request",
-//             send_to: user.email,
-//             sent_from: `${process.env.PRAXFORM_FROM_NAME || 'PraxForm Team'} <${process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com'}>`,
-//             reply_to: process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com',
-//             template: "reset-password",
-//             name: user.firstName,
-//             link: resetUrl
-//         });
-//         res.json({ success: true, message: 'Password reset link sent.' });
-//     } catch (err) {
-//         user.resetPasswordToken = undefined;
-//         user.resetPasswordExpires = undefined;
-//         await user.save();
-//         res.status(500);
-//         throw new Error('Email could not be sent.');
-//     }
-// });
-
-// // @desc      Reset password
-// // @route     PUT /api/v1/auth/reset-password/:token
-// // @access    Public
-// const resetPassword = asyncHandler(async (req, res) => {
-//     const resetPasswordToken = crypto.createHash('sha256').update(req.params.resetToken).digest('hex');
-//     const user = await User.findOne({
-//         resetPasswordToken,
-//         resetPasswordExpires: { $gt: Date.now() }
-//     });
-
-//     if (!user) {
-//         res.status(400);
-//         throw new Error('Invalid or expired token.');
-//     }
-
-//     user.passwordHash = req.body.password;
-//     user.resetPasswordToken = undefined;
-//     user.resetPasswordExpires = undefined;
-//     await user.save();
-
-//     await sendTokenResponse(user, 200, res);
-// });
-
-// // @desc      Change password for a logged-in user
-// // @route     PUT /api/v1/auth/change-password
-// // @access    Private
-// const changePassword = asyncHandler(async (req, res) => {
-//     const { oldPassword, newPassword } = req.body;
-//     const user = await User.findById(req.user._id);
-
-//     if (!user || !(await user.matchPassword(oldPassword))) {
-//         res.status(401);
-//         throw new Error('Incorrect old password.');
-//     }
-    
-//     // Add validation for the new password
-//     const passwordRulesRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
-//     if (!passwordRulesRegex.test(newPassword)) {
-//         res.status(400);
-//         throw new Error('New password must be at least 8 characters long, contain at least one number and one special character.');
-//     }
-
-//     user.passwordHash = newPassword;
-//     await user.save();
-
-//     const message = "Your account password was successfully changed.";
-//     await createNotification(user._id, user.currentOrganization, 'password_changed', message, '/settings/security');
-
-//     // Send an email notification to the user
-//     try {
-//         await sendEmail({
-//             subject: "Your PraxForm Password Has Been Changed",
-//             send_to: user.email,
-//             sent_from: `${process.env.PRAXFORM_FROM_NAME || 'PraxForm Team'} <${process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com'}>`,
-//             reply_to: process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com',
-//             template: "changePassword",
-//             name: user.firstName,
-//         });
-//     } catch (emailError) {
-//         console.error('Error sending password change notification email:', emailError);
-//     }
-    
-//     res.status(200).json({ success: true, message: 'Password changed successfully.' });
-// });
-
-
-
-
-// module.exports = {
-//     registerUser,
-//     loginUser,
-//     verifyMfa,
-//     googleAuthCallback,
-//     refreshToken,
-//     logout,
-//     getMe,
-//     resendVerification,
-//     verifyEmail,
-//     forgotPassword,
-//     resetPassword,
-//     changePassword
-// };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 const Organization = require('../models/Organization');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const createNotification = require('../utils/createNotification');
-const sendEmail = require('../utils/email/sendEmail');
-const { sendTokenResponse } = require('../utils/tokenUtils');
+const { sendEmail } = require('../utils/email/sendEmail');
 const { generateTokens } = require('../utils/generateTokens');
+
+// Constants for Security
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCK_TIME = 15 * 60 * 1000; // 15 minutes
 
 const generateSixDigitCode = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
+// --- CENTRALIZED TOKEN RESPONSE (Cookies + Redirects) ---
+const sendTokenResponse = async (user, statusCode, res, redirectOverride) => {
+    const { accessToken, refreshToken } = generateTokens(user._id);
+
+    const cookieDomain = process.env.PRAXFORM_ROOT_DOMAIN || undefined;
+
+    // Refresh Token: 7 Days, HTTP Only
+    const refreshTokenOptions = {
+        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        httpOnly: true,
+        path: '/',
+        domain: cookieDomain
+    };
+
+    // Access Token: 15 Mins, HTTP Only
+    const accessTokenOptions = {
+        expires: new Date(Date.now() + 15 * 60 * 1000),
+        httpOnly: true,
+        path: '/',
+        domain: cookieDomain
+    };
+
+    if (process.env.NODE_ENV === 'production') {
+        refreshTokenOptions.secure = true;
+        refreshTokenOptions.sameSite = 'none';
+        accessTokenOptions.secure = true;
+        accessTokenOptions.sameSite = 'none';
+    } else {
+        refreshTokenOptions.sameSite = 'lax';
+        accessTokenOptions.sameSite = 'lax';
+    }
+
+    res.cookie('refreshToken', refreshToken, refreshTokenOptions);
+    res.cookie('accessToken', accessToken, accessTokenOptions);
+
+    // --- Redirect Logic (For Google Auth) ---
+    if (statusCode === 302) {
+        const frontendHost = process.env.PRAXFORM_FRONTEND_HOST || 'http://localhost:5173';
+        
+        // Priority 1: User has no organization (Needs Setup)
+        if (!user.currentOrganization) {
+            // Create a short-lived setup token for the frontend to authorize the setup wizard
+            const setupToken = jwt.sign({ id: user._id, purpose: 'setup' }, process.env.JWT_SECRET, { expiresIn: '15m' });
+            return res.redirect(`${frontendHost}/auth/google/callback?setup_token=${setupToken}`);
+        }
+
+        // Priority 2: Explicit Redirect Override (from state)
+        if (redirectOverride) {
+            return res.redirect(`${frontendHost}${redirectOverride}`);
+        }
+
+        // Priority 3: Default Dashboard
+        return res.redirect(`${frontendHost}/dashboard`);
+    }
+
+    // --- JSON Logic (For Local Auth) ---
+    res.status(statusCode).json({
+        success: true,
+        user: {
+            _id: user._id,
+            firstName: user.firstName,
+            email: user.email,
+            avatar: user.avatar,
+            currentOrganization: user.currentOrganization
+        },
+        redirectPath: redirectOverride || '/dashboard' // Tell frontend where to go
+    });
+};
+
 const registerUser = asyncHandler(async (req, res) => {
     const { firstName, lastName, email, password, organization } = req.body;
 
-    if (!email || !password || !firstName || !lastName || !organization || !organization.name || !organization.industry || !organization.website || !organization.phoneNumber || !organization.address) {
+    if (!email || !password || !firstName || !lastName || !organization) {
         res.status(400);
-        throw new Error('Please provide all required user and organization fields.');
+        throw new Error('Please provide all required fields.');
     }
 
     const userExists = await User.findOne({ email });
@@ -472,6 +98,7 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new Error('User with this email already exists.');
     }
 
+    // Org Slug Logic
     const baseSlug = organization.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '');
     let slug = baseSlug;
     let counter = 1;
@@ -511,54 +138,91 @@ const registerUser = asyncHandler(async (req, res) => {
         await sendEmail({
             subject: "Verify Your Email for PraxForm",
             send_to: user.email,
-            sent_from: `${process.env.PRAXFORM_FROM_NAME || 'PraxForm Team'} <${process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com'}>`,
-            reply_to: process.env.PRAXFORM_FROM_EMAIL || 'noreply@praxform.com',
+            sent_from: `${process.env.PRAXFORM_FROM_NAME} <${process.env.PRAXFORM_FROM_EMAIL}>`,
+            reply_to: process.env.PRAXFORM_FROM_EMAIL,
             template: "verification",
             name: user.firstName,
             code: verificationCode
         });
         res.status(201).json({
             success: true,
-            message: 'User registered successfully. Please check your email for the verification code.'
+            message: 'User registered successfully. Please verify your email.'
         });
     } catch (emailError) {
         console.error('Error sending verification email:', emailError);
-        res.status(500);
-        throw new Error('User registered but failed to send verification email.');
+        res.status(500); // Don't throw, user is created
+        res.json({ success: true, message: 'User created, but email failed. Contact support.' });
     }
 });
 
 const loginUser = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    
+    // Select password AND lockout fields
+    const user = await User.findOne({ email }).select('+passwordHash +loginAttempts +lockUntil');
 
-    if (!user || !(await user.matchPassword(password))) {
+    if (!user) {
         res.status(401);
         throw new Error('Invalid email or password');
     }
 
-    if (user.authMethod !== 'local') {
-        res.status(401);
-        throw new Error(`This account uses ${user.authMethod} sign-in. Please use that method to log in.`);
+    // 1. Check Account Lockout
+    if (user.lockUntil && user.lockUntil > Date.now()) {
+        res.status(423); // Locked
+        const minutesLeft = Math.ceil((user.lockUntil.getTime() - Date.now()) / (60 * 1000));
+        throw new Error(`Account locked. Try again in ${minutesLeft} minutes.`);
     }
 
-    if (!user.isEmailVerified) {
+    // 2. Check Password
+    const isMatch = await user.matchPassword(password);
+
+    if (!isMatch) {
+        // Increment attempts
+        user.loginAttempts = (user.loginAttempts || 0) + 1;
+        
+        if (user.loginAttempts >= MAX_LOGIN_ATTEMPTS) {
+            user.lockUntil = new Date(Date.now() + LOCK_TIME);
+            user.loginAttempts = 0; // Reset count so it starts fresh after lock expires
+            await user.save();
+            res.status(423);
+            throw new Error(`Too many failed attempts. Account locked for 15 minutes.`);
+        }
+        
+        await user.save();
         res.status(401);
+        throw new Error('Invalid email or password');
+    }
+
+    // 3. Success - Reset Lockout
+    user.loginAttempts = 0;
+    user.lockUntil = undefined;
+    await user.save();
+
+    // 4. Check Auth Method (Hybrid Logic allow 'google' users to use password if they set one, 
+    // but strictly speaking for Praxform, we might want to enforce 'local' match or allow both if merged)
+    // For now, let's allow it if the password matched.
+
+    // 5. Check Email Verification
+    if (!user.isEmailVerified) {
+        res.status(403);
         throw new Error('Please verify your email address before logging in.');
     }
 
+    // 6. MFA Check (Praxform Specific)
     if (user.mfaEnabled) {
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             mfaRequired: true,
             mfaMethod: user.mfaMethod,
             message: 'MFA is enabled. Please provide your authentication code.'
         });
-    } else {
-        user.lastLogin = new Date();
-        await user.save();
-        await sendTokenResponse(user, 200, res);
     }
+
+    user.lastLogin = new Date();
+    await user.save();
+
+    // 7. Send Token Response
+    await sendTokenResponse(user, 200, res);
 });
 
 const verifyMfa = asyncHandler(async (req, res) => {
@@ -566,34 +230,21 @@ const verifyMfa = asyncHandler(async (req, res) => {
     let user;
 
     if (mfaToken) {
-        // --- GOOGLE MFA FLOW ---
-        // 1. A temporary mfaToken exists. Verify it first.
         const decoded = jwt.verify(mfaToken, process.env.JWT_REAUTH_SECRET);
         if (decoded.purpose !== 'mfa-verification') {
-            res.status(401);
-            throw new Error('Invalid MFA token purpose.');
+            res.status(401); throw new Error('Invalid MFA token purpose.');
         }
-
         user = await User.findById(decoded.id).select('+googleAuthenticatorSecret');
-
     } else if (email) {
-
         user = await User.findOne({ email }).select('+googleAuthenticatorSecret');
-
     }
         
     if (!user) {
-        res.status(401);
-        throw new Error('Invalid credentials or MFA session');
+        res.status(401); throw new Error('Invalid credentials');
     }
 
     let isValid = false;
-
     if (user.mfaMethod === 'app') {
-        if (!user.googleAuthenticatorSecret) {
-            res.status(400);
-            throw new Error('Google Authenticator is not set up for this user.');
-        }
         const speakeasy = require('speakeasy');
         isValid = speakeasy.totp.verify({
             secret: user.googleAuthenticatorSecret,
@@ -601,10 +252,11 @@ const verifyMfa = asyncHandler(async (req, res) => {
             token: code,
             window: 1
         });
-    } else { // Handle email/sms if you implement them later
+    } else { 
+        // Logic for Email/SMS codes
         const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
         const legacyUser = await User.findOne({
-            email,
+            _id: user._id,
             loginCode: hashedCode,
             loginCodeExpires: { $gt: Date.now() }
         });
@@ -612,8 +264,7 @@ const verifyMfa = asyncHandler(async (req, res) => {
     }
 
     if (!isValid) {
-        res.status(401);
-        throw new Error('Invalid or expired authentication code.');
+        res.status(401); throw new Error('Invalid code.');
     }
 
     user.lastLogin = new Date();
@@ -623,68 +274,88 @@ const verifyMfa = asyncHandler(async (req, res) => {
 
 const googleAuthCallback = asyncHandler(async (req, res) => {
     const user = req.user;
-    const state = req.query.state ? JSON.parse(Buffer.from(req.query.state, 'base64').toString('ascii')) : null;
+    
+    // The passport strategy already parsed the 'state' and attached 'postAuthPath' to req.user
+    // But for MFA/Reauth, we need to check the query params again if we want to be specific
+    
+    // Check if this was a Reauth attempt (e.g. accessing Settings)
+    const state = req.query.state ? JSON.parse(Buffer.from(req.query.state, 'base64').toString('ascii')) : {};
 
-     if (state && state.purpose === 'reauth') {
+    if (state.purpose === 'reauth') {
         const reauthToken = jwt.sign(
             { id: user._id, purpose: 're-authentication' },
             process.env.JWT_REAUTH_SECRET,
             { expiresIn: '5m' }
         );
-        const destinationUrl = `${process.env.PRAXFORM_FRONTEND_HOST}/settings?tab=security&reauth_token=${reauthToken}`;
-        return res.redirect(destinationUrl);
+        return res.redirect(`${process.env.PRAXFORM_FRONTEND_HOST}/settings?tab=security&reauth_token=${reauthToken}`);
     }
 
-     if (user.mfaEnabled) {
+    // Handle MFA on top of Google Auth (High Security)
+    if (user.mfaEnabled) {
         const mfaToken = jwt.sign(
             { id: user._id, purpose: 'mfa-verification' },
             process.env.JWT_REAUTH_SECRET,
             { expiresIn: '5m' }
         );
-        const destinationUrl = `${process.env.PRAXFORM_FRONTEND_HOST}/verify-login?mfa_token=${mfaToken}&method=${user.mfaMethod}`;
-        return res.redirect(destinationUrl);
+        return res.redirect(`${process.env.PRAXFORM_FRONTEND_HOST}/verify-login?mfa_token=${mfaToken}&method=${user.mfaMethod}`);
     }
 
-    if (user.currentOrganization) {
-        user.lastLogin = new Date();
-        await user.save();
-        const { accessToken } = generateTokens(user._id);
-        res.redirect(`${process.env.PRAXFORM_FRONTEND_HOST}/auth/google/callback?token=${accessToken}`);
-    } else {
-        const setupToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '15m' });
-        res.redirect(`${process.env.PRAXFORM_FRONTEND_HOST}/auth/google/callback?setup_token=${setupToken}`);
-    }
+    // Standard Login
+    const redirectPath = user.postAuthPath || null;
+    await sendTokenResponse(user, 302, res, redirectPath);
 });
 
 const refreshToken = asyncHandler(async (req, res) => {
-    const { refreshToken: tokenFromCookie } = req.cookies;
-    if (!tokenFromCookie) {
-        res.status(401);
-        throw new Error('No refresh token provided.');
+    const token = req.cookies.refreshToken;
+    if (!token) {
+        res.status(401); throw new Error('No refresh token provided.');
     }
+
     try {
-        const decoded = jwt.verify(tokenFromCookie, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user = await User.findById(decoded.id);
+
         if (!user) {
-            res.status(401);
-            throw new Error('Invalid token user.');
+            res.status(401); throw new Error('User not found.');
         }
-        const { accessToken } = generateTokens(user._id);
-        res.json({ success: true, accessToken });
+
+        // Rotate Tokens
+        const { accessToken, refreshToken: newRefreshToken } = generateTokens(user._id);
+
+        const cookieDomain = process.env.PRAXFORM_ROOT_DOMAIN || undefined;
+        
+        // Match options from sendTokenResponse
+        const commonOptions = {
+            httpOnly: true,
+            path: '/',
+            domain: cookieDomain,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        };
+
+        res.cookie('refreshToken', newRefreshToken, { ...commonOptions, expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) });
+        res.cookie('accessToken', accessToken, { ...commonOptions, expires: new Date(Date.now() + 15 * 60 * 1000) });
+
+        res.json({ success: true, accessToken }); // Return AT for memory usage if needed
     } catch (err) {
-        res.status(401);
-        throw new Error('Refresh token invalid or expired. Please log in again.');
+        res.status(401); throw new Error('Invalid refresh token.');
     }
 });
 
 const logout = asyncHandler(async (req, res) => {
-    res.cookie('refreshToken', 'none', {
-        expires: new Date(Date.now() + 10 * 1000),
+    const cookieDomain = process.env.PRAXFORM_ROOT_DOMAIN || undefined;
+    const cookieOptions = {
         httpOnly: true,
+        expires: new Date(0), // Expire immediately
+        path: '/',
+        domain: cookieDomain,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        path: '/api/v1/auth/refresh-token'
-    });
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    };
+
+    res.cookie('refreshToken', '', cookieOptions);
+    res.cookie('accessToken', '', cookieOptions);
+
     res.status(200).json({ success: true, message: 'Logged out successfully' });
 });
 
@@ -766,25 +437,44 @@ const verifyEmail = asyncHandler(async (req, res) => {
     res.status(200).json({ success: true, message: 'Email verified successfully.' });
 });
 
-
 const forgotPassword = asyncHandler(async (req, res) => {
-    const user = await User.findOne({ email: req.body.email });
+    const { email } = req.body;
+    
+    // 1. Find the user
+    // We select +lockUntil to ensure we don't spam locked accounts
+    const user = await User.findOne({ email }).select('+lockUntil');
+
     if (!user) {
-        res.status(404);
-        throw new Error('User not found.');
+        // Security Best Practice: Always return 200 even if user doesn't exist
+        // to prevent email enumeration attacks.
+        return res.status(200).json({ 
+            success: true, 
+            message: 'If an account with that email exists, a password reset link has been sent.' 
+        });
     }
 
-    if (user.authMethod !== 'local') {
-        res.status(400);
-        throw new Error(`This account is managed by ${user.authMethod}. Password cannot be reset here.`);
+    // --- REMOVED: The block that prevented Google users from resetting password ---
+    /* if (user.authMethod !== 'local') {
+       throw new Error(...)
+    }
+    */
+
+    // 2. Check if account is locked (Security)
+    if (user.lockUntil && user.lockUntil > Date.now()) {
+        res.status(423);
+        const minutesLeft = Math.ceil((user.lockUntil.getTime() - Date.now()) / (60 * 1000));
+        throw new Error(`Account locked due to too many failed attempts. Try again in ${minutesLeft} minutes.`);
     }
     
+    // 3. Generate Reset Token
     const resetToken = crypto.randomBytes(20).toString('hex');
     user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    user.resetPasswordExpires = Date.now() + 3600000;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 Hour
     await user.save();
 
+    // 4. Send Email
     const resetUrl = `${process.env.PRAXFORM_FRONTEND_HOST}/reset-password/${resetToken}`;
+    
     try {
         await sendEmail({
             subject: "Password Reset Request",
@@ -795,34 +485,17 @@ const forgotPassword = asyncHandler(async (req, res) => {
             name: user.firstName,
             link: resetUrl
         });
-        res.json({ success: true, message: 'Password reset link sent.' });
+
+        res.json({ success: true, message: 'If an account with that email exists, a password reset link has been sent.' });
     } catch (err) {
         user.resetPasswordToken = undefined;
         user.resetPasswordExpires = undefined;
         await user.save();
+        
+        console.error("Password reset email failed:", err);
         res.status(500);
-        throw new Error('Email could not be sent.');
+        throw new Error('Email could not be sent. Please try again later.');
     }
-});
-
-const resetPassword = asyncHandler(async (req, res) => {
-    const resetPasswordToken = crypto.createHash('sha256').update(req.params.resetToken).digest('hex');
-    const user = await User.findOne({
-        resetPasswordToken,
-        resetPasswordExpires: { $gt: Date.now() }
-    });
-
-    if (!user) {
-        res.status(400);
-        throw new Error('Invalid or expired token.');
-    }
-
-    user.passwordHash = req.body.password;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
-    await user.save();
-
-    await sendTokenResponse(user, 200, res);
 });
 
 const changePassword = asyncHandler(async (req, res) => {
@@ -862,6 +535,25 @@ const changePassword = asyncHandler(async (req, res) => {
     res.status(200).json({ success: true, message: 'Password changed successfully.' });
 });
 
+const resetPassword = asyncHandler(async (req, res) => {
+    const resetPasswordToken = crypto.createHash('sha256').update(req.params.resetToken).digest('hex');
+    const user = await User.findOne({
+        resetPasswordToken,
+        resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+        res.status(400); throw new Error('Invalid or expired token.');
+    }
+
+    user.passwordHash = req.body.password; // Assumes Pre-save hook hashes this
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    await sendTokenResponse(user, 200, res);
+});
+
 module.exports = {
     registerUser,
     loginUser,
@@ -874,5 +566,5 @@ module.exports = {
     verifyEmail,
     forgotPassword,
     resetPassword,
-    changePassword,
+    changePassword, 
 };
