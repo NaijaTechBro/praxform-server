@@ -8,7 +8,7 @@ const Mailjet = require('node-mailjet');
 
 // --- Helper: Render Templates ---
 const renderTemplate = (templateName, data) => {
-    const filePath = path.join(__dirname, `../emails/${templateName}.handlebars`);
+    const filePath = path.join(__dirname, `../../emails/${templateName}.handlebars`);
     const source = fs.readFileSync(filePath, 'utf-8').toString();
     const template = handlebars.compile(source);
     const dataWithYear = { ...data, currentYear: new Date().getFullYear() };
