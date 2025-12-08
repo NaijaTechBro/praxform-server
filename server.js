@@ -39,7 +39,13 @@ app.post('/api/v1/payments/webhook', express.raw({ type: 'application/json' }), 
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors());
+
+app.use(cors({
+    origin: process.env.PRAXFORM_FRONTEND_HOST || 'http://localhost:5173', // Must be specific, no wildcard '*'
+    credentials: true, // This allows cookies to be sent/received
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+}));
+
 
 app.use(session({
     secret: process.env.SESSION_SECRET,
