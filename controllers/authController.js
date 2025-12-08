@@ -1,3 +1,4 @@
+const bcrypt = require('bcryptjs');
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 const Organization = require('../models/Organization');
@@ -546,9 +547,17 @@ const resetPassword = asyncHandler(async (req, res) => {
         res.status(400); throw new Error('Invalid or expired token.');
     }
 
-    user.passwordHash = req.body.password; // Assumes Pre-save hook hashes this
+    // 🚨 FIX: Manually hash the password here. 
+    // This ensures it gets hashed even if authMethod is 'google'
+    const salt = await bcrypt.genSalt(10);
+    user.passwordHash = await bcrypt.hash(req.body.password, salt);
+
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
+    
+    // If they successfully set a password, we can technically allow them to login via local now
+    // Optional: user.authMethod = 'local'; 
+
     await user.save();
 
     await sendTokenResponse(user, 200, res);
