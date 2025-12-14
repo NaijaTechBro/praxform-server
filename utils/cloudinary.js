@@ -7,7 +7,7 @@ const cloudinary = require('../config/cloudinary');
  */
 const deleteFromCloudinary = async (publicId) => {
   try {
-    // Cloudinary's destroy method can handle images, videos, and raw files.
+    // Cloudinary destroy method can handle images, videos, and raw files.
     const result = await cloudinary.uploader.destroy(publicId);
     console.log(`Successfully deleted ${publicId} from Cloudinary.`, result);
     return result;

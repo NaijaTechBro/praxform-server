@@ -167,6 +167,11 @@ const loginUser = asyncHandler(async (req, res) => {
         throw new Error('Invalid email or password');
     }
 
+    if (!user.passwordHash) {
+        res.status(401);
+        throw new Error('Invalid email or password'); 
+    }
+
     // 1. Check Account Lockout
     if (user.lockUntil && user.lockUntil > Date.now()) {
         res.status(423); // Locked
@@ -547,10 +552,7 @@ const resetPassword = asyncHandler(async (req, res) => {
         res.status(400); throw new Error('Invalid or expired token.');
     }
 
-    // 🚨 FIX: Manually hash the password here. 
-    // This ensures it gets hashed even if authMethod is 'google'
-    const salt = await bcrypt.genSalt(10);
-    user.passwordHash = await bcrypt.hash(req.body.password, salt);
+    user.passwordHash = req.body.password;
 
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
