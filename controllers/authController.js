@@ -540,7 +540,6 @@ const changePassword = asyncHandler(async (req, res) => {
     
     res.status(200).json({ success: true, message: 'Password changed successfully.' });
 });
-
 const resetPassword = asyncHandler(async (req, res) => {
     const resetPasswordToken = crypto.createHash('sha256').update(req.params.resetToken).digest('hex');
     const user = await User.findOne({
@@ -553,14 +552,12 @@ const resetPassword = asyncHandler(async (req, res) => {
     }
 
     user.passwordHash = req.body.password;
-
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
     
-    // If they successfully set a password, we can technically allow them to login via local now
-    // Optional: user.authMethod = 'local'; 
+    user.authMethod = 'local'; 
 
-    await user.save();
+    await user.save(); 
 
     await sendTokenResponse(user, 200, res);
 });
