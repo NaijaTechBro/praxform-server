@@ -6,7 +6,8 @@ const Form = require('../models/Form');
 const createNotification = require('../utils/createNotification');
 const triggerWebhook = require('../utils/triggerWebhook');
 const { sendEmail } = require('../utils/email/sendEmail');
-const sendSms = require('../utils/sendSms');
+const {sendOTP, verifyOTP } = require('../utils/sendSms');
+const { isIn } = require('validator');
 
 // Helper to generate a 6-digit numeric code
 const generateSixDigitCode = () => Math.floor(100000 + Math.random() * 900000).toString();
@@ -14,33 +15,61 @@ const generateSixDigitCode = () => Math.floor(100000 + Math.random() * 900000).t
 // @desc      Get a form (or initiate verification if required)
 // @route     GET /api/v1/submissions/:id/:accessCode
 // @access    Public
+// @desc      Get a form (or initiate verification if required)
+// @route     GET /api/v1/submissions/:id/:accessCode
+// @access    Public
 const getPublicFormByAccessCode = asyncHandler(async (req, res) => {
     const { id, accessCode } = req.params;
-     const form = await Form.findById(id).populate('organization', 'name');
+    const form = await Form.findById(id).populate('organization', 'name');
 
     if (!form) { res.status(404); throw new Error('Form not found'); }
-    if (form.settings.dueDate && new Date() > new Date(form.settings.dueDate)) { res.status(403); throw new Error('This form is past its due date.'); }
-    if (form.status !== 'active') { res.status(403); throw new Error('This form is not currently active.'); }
+    if (form.settings.dueDate && new Date() > new Date(form.settings.dueDate)) { 
+        res.status(403); throw new Error('This form is past its due date.'); 
+    }
+    if (form.status !== 'active') { 
+        res.status(403); throw new Error('This form is not currently active.'); 
+    }
 
     const recipient = form.recipients.find((r) => r.uniqueAccessCode === accessCode);
     const isPublicLink = form.publicLink?.enabled && form.publicLink?.uniqueAccessCode === accessCode;
 
-    if (!recipient && !isPublicLink) { res.status(403); throw new Error('Invalid or expired access code'); }
-    if (recipient && form.settings.oneTimeUse && recipient.status === 'completed') { res.status(403); throw new Error('This link has already been used.'); }
+    if (!recipient && !isPublicLink) { 
+        res.status(403); throw new Error('Invalid or expired access code'); 
+    }
+    if (recipient && form.settings.oneTimeUse && recipient.status === 'completed') { 
+        res.status(403); throw new Error('This link has already been used.'); 
+    }
 
+    // --- VERIFICATION LOGIC ---
     if (form.settings.requireEmailAuth || form.settings.requireSmsAuth) {
         if (!recipient) {
             res.status(400);
             throw new Error("This secure form requires a specific recipient and cannot be accessed via a public link.");
         }
 
-        const verificationCode = generateSixDigitCode();
-        const hashedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
-        recipient.verificationCode = hashedCode;
-        recipient.verificationCodeExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-        await form.save();
+        // 1. Handle Termii SMS Authentication
+        if (form.settings.requireSmsAuth && recipient.phone) {
+            try {
+                // Termii generates the code; we store the pinId returned by your service
+                const pinId = await sendSms(recipient.phone); 
+                recipient.verificationCode = pinId; // Store Termii's pin_id here
+                recipient.verificationCodeExpires = Date.now() + 10 * 60 * 1000;
+                await form.save();
+            } catch (error) {
+                res.status(500);
+                throw new Error('Failed to send SMS verification code.');
+            }
+        } 
+        
+        // 2. Handle Manual Email Authentication (If SMS isn't used or as a fallback)
+        else if (form.settings.requireEmailAuth) {
+            const verificationCode = generateSixDigitCode();
+            const hashedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
+            
+            recipient.verificationCode = hashedCode;
+            recipient.verificationCodeExpires = Date.now() + 10 * 60 * 1000;
+            await form.save();
 
-        if (form.settings.requireEmailAuth) {
             await sendEmail({
                 send_to: recipient.email,
                 subject: `Your PraxForm Verification Code`,
@@ -50,21 +79,12 @@ const getPublicFormByAccessCode = asyncHandler(async (req, res) => {
                 code: verificationCode
             });
         }
-        
-        if (form.settings.requireSmsAuth && recipient.phone) {
-            const messageBody = `Your PraxForm verification code is: ${verificationCode}`;
-            try {
-                await sendSms(recipient.phone, messageBody);
-            } catch (error) {
-                res.status(500);
-                throw new Error('Could not send SMS verification code. Please try again later.');
-            }
-        }
 
         res.status(200).json({ verificationRequired: true, recipientEmail: recipient.email });
         return;
     }
 
+    // No auth required, return form data
     const publicForm = {
         _id: form._id, 
         name: form.name, 
@@ -74,39 +94,62 @@ const getPublicFormByAccessCode = asyncHandler(async (req, res) => {
         headerImage: form.headerImage,
         settings: form.settings,
         organizationName: form.organization.name 
-     };
+    };
     res.json(publicForm);
 });
 
 // @desc      Verify a 2FA code and get the form data
 // @route     POST /api/v1/submissions/verify-access
 // @access    Public
+// @desc      Verify a 2FA code and get the form data
+// @route     POST /api/v1/submissions/verify-access
+// @access    Public
 const verifyAccessAndGetForm = asyncHandler(async (req, res) => {
     const { formId, accessCode, verificationCode } = req.body;
+    
     const form = await Form.findById(formId);
     if (!form) { res.status(404); throw new Error('Form not found'); }
     
     const recipient = form.recipients.find(r => r.uniqueAccessCode === accessCode);
     if (!recipient) { res.status(401); throw new Error('Invalid submission session.'); }
 
-    const hashedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
-    if (
-        !recipient.verificationCode ||
-        recipient.verificationCode !== hashedCode ||
-        recipient.verificationCodeExpires < Date.now()
-    ) {
+    let isValid = false;
+
+    // 1. Verify via Termii if SMS Auth was triggered
+    if (form.settings.requireSmsAuth) {
+        // Here, recipient.verificationCode stores the pin_id from Termii
+        isValid = await verifyOTP(recipient.verificationCode, verificationCode);
+    } 
+    // 2. Verify via manual Email hash
+    else {
+        const hashedCode = crypto.createHash('sha256').update(verificationCode).digest('hex');
+        isValid = (
+            recipient.verificationCode &&
+            recipient.verificationCode === hashedCode &&
+            recipient.verificationCodeExpires > Date.now()
+        );
+    }
+
+    if (!isValid) {
         res.status(401);
         throw new Error('Invalid or expired verification code.');
     }
 
+    // Success: Clear the codes and return form data
     recipient.verificationCode = undefined;
     recipient.verificationCodeExpires = undefined;
     await form.save();
 
-    const publicForm = { _id: form._id, name: form.name, description: form.description, fields: form.fields, encryptionKey: form.encryptionKey };
+    const publicForm = { 
+        _id: form._id, 
+        name: form.name, 
+        description: form.description, 
+        fields: form.fields, 
+        encryptionKey: form.encryptionKey 
+    };
+    
     res.status(200).json(publicForm);
 });
-
 
 // @desc      Create a new submission
 // @route     POST /api/v1/submissions
